@@ -1,0 +1,15 @@
+---
+name: "Request Movies"
+guid: "6f1d3c52-8a7b-4e0d-9b2a-5c4e7d91a3f8"
+version: "1.1.0.0"
+targetAbi: "12.4.0"
+framework: "net10.0"
+owner: "hogu-light-beam"
+overview: "Recherchez et demandez des films et séries (via Seerr) sans quitter Jellyfin."
+description: >
+  Intégration de Seerr dans Jellyfin : résultats « disponible à la demande »,
+  bouton de demande avec choix de qualité, statut sur la fiche, détection de
+  disponibilité réelle et signalement de problèmes (Issues Seerr).
+category: "General"
+artifacts:
+  - "Jellyfin.Plugin.RequestMovies.dll"

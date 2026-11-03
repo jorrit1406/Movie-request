@@ -8,3 +8,14 @@ C:\Users\jromijn\OneDrive - Batenburg Techniek N.V\Documenten\Server\jellyfin.Mo
 C:\Users\jromijn\OneDrive - Batenburg Techniek N.V\Documenten\Server\jellyfin.MovieRequests\obj\Release\net8.0\refint\Jellyfin.MovieRequests.dll
 C:\Users\jromijn\OneDrive - Batenburg Techniek N.V\Documenten\Server\jellyfin.MovieRequests\obj\Release\net8.0\Jellyfin.MovieRequests.pdb
 C:\Users\jromijn\OneDrive - Batenburg Techniek N.V\Documenten\Server\jellyfin.MovieRequests\obj\Release\net8.0\ref\Jellyfin.MovieRequests.dll
+D:\Github\Server\jellyfin.MovieRequests\bin\Release\net8.0\Jellyfin.MovieRequests.deps.json
+D:\Github\Server\jellyfin.MovieRequests\bin\Release\net8.0\Jellyfin.MovieRequests.dll
+D:\Github\Server\jellyfin.MovieRequests\bin\Release\net8.0\Jellyfin.MovieRequests.pdb
+D:\Github\Server\jellyfin.MovieRequests\obj\Release\net8.0\Jellyfin.MovieRequest.csproj.AssemblyReference.cache
+D:\Github\Server\jellyfin.MovieRequests\obj\Release\net8.0\Jellyfin.MovieRequest.GeneratedMSBuildEditorConfig.editorconfig
+D:\Github\Server\jellyfin.MovieRequests\obj\Release\net8.0\Jellyfin.MovieRequest.csproj.CoreCompileInputs.cache
+D:\Github\Server\jellyfin.MovieRequests\obj\Release\net8.0\Jellyfin.MovieRequest.sourcelink.json
+D:\Github\Server\jellyfin.MovieRequests\obj\Release\net8.0\Jellyfin.MovieRequests.dll
+D:\Github\Server\jellyfin.MovieRequests\obj\Release\net8.0\refint\Jellyfin.MovieRequests.dll
+D:\Github\Server\jellyfin.MovieRequests\obj\Release\net8.0\Jellyfin.MovieRequests.pdb
+D:\Github\Server\jellyfin.MovieRequests\obj\Release\net8.0\ref\Jellyfin.MovieRequests.dll

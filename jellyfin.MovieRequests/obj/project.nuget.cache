@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "dHzpeEKIQ64=",
+  "dgSpecHash": "udAsbddb8Jk=",
   "success": true,
-  "projectFilePath": "C:\\Users\\jromijn\\OneDrive - Batenburg Techniek N.V\\Documenten\\Server\\jellyfin.MovieRequests\\Jellyfin.MovieRequest.csproj",
+  "projectFilePath": "D:\\Github\\Server\\jellyfin.MovieRequests\\Jellyfin.MovieRequest.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\jromijn\\.nuget\\packages\\diacritics\\3.3.29\\diacritics.3.3.29.nupkg.sha512",
     "C:\\Users\\jromijn\\.nuget\\packages\\icu4n\\60.1.0-alpha.356\\icu4n.60.1.0-alpha.356.nupkg.sha512",

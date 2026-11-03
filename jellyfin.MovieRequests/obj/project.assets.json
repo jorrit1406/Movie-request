@@ -1556,11 +1556,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\jromijn\\OneDrive - Batenburg Techniek N.V\\Documenten\\Server\\jellyfin.MovieRequests\\Jellyfin.MovieRequest.csproj",
+      "projectUniqueName": "D:\\Github\\Server\\jellyfin.MovieRequests\\Jellyfin.MovieRequest.csproj",
       "projectName": "Jellyfin.MovieRequests",
-      "projectPath": "C:\\Users\\jromijn\\OneDrive - Batenburg Techniek N.V\\Documenten\\Server\\jellyfin.MovieRequests\\Jellyfin.MovieRequest.csproj",
+      "projectPath": "D:\\Github\\Server\\jellyfin.MovieRequests\\Jellyfin.MovieRequest.csproj",
       "packagesPath": "C:\\Users\\jromijn\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\jromijn\\OneDrive - Batenburg Techniek N.V\\Documenten\\Server\\jellyfin.MovieRequests\\obj\\",
+      "outputPath": "D:\\Github\\Server\\jellyfin.MovieRequests\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\jromijn\\AppData\\Roaming\\NuGet\\NuGet.Config"

@@ -8,6 +8,6 @@ build_property.PlatformNeutralAssembly =
 build_property.EnforceExtendedAnalyzerRules = 
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.RootNamespace = Jellyfin.MovieRequests
-build_property.ProjectDir = C:\Users\jromijn\OneDrive - Batenburg Techniek N.V\Documenten\Server\jellyfin.MovieRequests\
+build_property.ProjectDir = D:\Github\Server\jellyfin.MovieRequests\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 

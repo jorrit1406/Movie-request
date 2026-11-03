@@ -6,7 +6,7 @@ de qualité, statut sur la fiche, disponibilité réelle et signalement de probl
 > ⚠️ **Pas encore testé sur une instance Jellyfin réelle.**
 
 Lien du dépôt de plugins Jellyfin :
-https://raw.githubusercontent.com/hogu-light-beam/jellyfin-plugin-request-movies/main/manifest.json
+https://raw.githubusercontent.com/JorritRomijn/Movie-request/main/jellyfin-plugin-request-movies/manifest.json
 (Dashboard > Plugins > Repositories > Add)
 
 Les releases publient un paquet distinct pour Jellyfin 10.11 (`targetAbi` 10.11.0, .NET 9) et Jellyfin 12.4

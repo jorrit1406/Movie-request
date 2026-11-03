@@ -4,7 +4,7 @@
     "name": "Request Movies",
     "description": "Recherchez et demandez des films et séries (via Seerr) sans quitter Jellyfin.",
     "overview": "Recherchez et demandez des films et séries (via Seerr) sans quitter Jellyfin.",
-    "owner": "hogu-light-beam",
+    "owner": "JorritRomijn",
     "category": "General",
     "versions": [
       {

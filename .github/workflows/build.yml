@@ -18,9 +18,9 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ matrix.dotnet-version }}
-      - run: dotnet build RequestMovies.slnx -c Release -f ${{ matrix.target-framework }}
-      - run: dotnet test RequestMovies.slnx -c Release -f ${{ matrix.target-framework }} --no-build
+      - run: dotnet build jellyfin-plugin-request-movies/RequestMovies.slnx -c Release -f ${{ matrix.target-framework }}
+      - run: dotnet test jellyfin-plugin-request-movies/RequestMovies.slnx -c Release -f ${{ matrix.target-framework }} --no-build
       - uses: actions/upload-artifact@v4
         with:
           name: plugin-${{ matrix.target-framework }}
-          path: Jellyfin.Plugin.RequestMovies/bin/Release/${{ matrix.target-framework }}/Jellyfin.Plugin.RequestMovies.dll
+          path: jellyfin-plugin-request-movies/Jellyfin.Plugin.RequestMovies/bin/Release/${{ matrix.target-framework }}/Jellyfin.Plugin.RequestMovies.dll

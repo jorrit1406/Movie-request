@@ -3,6 +3,7 @@
 ## 1.2.3
 - Prevent Jellyfin Web from reusing a stale client script that omits shared-list voting controls.
 - Update an existing web loader to use a versioned client-script URL.
+- Let Jellyfin administrators mark shared-list requests as done and display them in a separate list.
 
 ## 1.2.2
 - Make the shared request list available from Jellyfin's side menu, regardless of text-only mode.

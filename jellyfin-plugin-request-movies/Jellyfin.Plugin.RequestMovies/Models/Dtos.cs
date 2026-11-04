@@ -162,6 +162,8 @@ public sealed class TextRequestDto
     [JsonPropertyName("voteCount")] public int VoteCount { get; set; }
 
     [JsonPropertyName("hasVoted")] public bool HasVoted { get; set; }
+
+    [JsonPropertyName("isDone")] public bool IsDone { get; set; }
 }
 
 public sealed class CreateTextRequestBody

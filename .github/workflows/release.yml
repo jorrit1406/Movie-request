@@ -11,6 +11,9 @@ on:
         type: string
 permissions:
   contents: write
+concurrency:
+  group: request-movies-release
+  cancel-in-progress: false
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -59,5 +62,33 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@users.noreply.github.com"
           git add manifest.json
-          git commit -m "Manifest v${RELEASE_VERSION:-${GITHUB_REF_NAME#v}}" || true
-          git push origin HEAD:main
+          if ! git diff --cached --quiet; then
+            git commit -m "Manifest v${RELEASE_VERSION:-${GITHUB_REF_NAME#v}}"
+          fi
+
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            if git merge-base --is-ancestor HEAD origin/main; then
+              echo "The manifest commit is already present on main."
+              exit 0
+            fi
+
+            if ! git rebase origin/main; then
+              echo "Could not rebase the manifest update onto the latest main branch." >&2
+              exit 1
+            fi
+
+            if git push origin HEAD:main; then
+              echo "Updated plugin manifest on main."
+              exit 0
+            fi
+
+            if [ "$attempt" -lt 5 ]; then
+              delay=$((attempt * 5))
+              echo "Push failed; retrying in ${delay}s (attempt $((attempt + 1)) of 5)." >&2
+              sleep "$delay"
+            fi
+          done
+
+          echo "Failed to push the updated manifest after 5 attempts." >&2
+          exit 1

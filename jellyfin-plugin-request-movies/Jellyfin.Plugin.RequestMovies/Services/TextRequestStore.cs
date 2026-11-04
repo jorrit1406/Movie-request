@@ -92,6 +92,30 @@ public sealed class TextRequestStore
         }
     }
 
+    public bool MarkDone(Guid id)
+    {
+        lock (_sync)
+        {
+            var request = _requests.FirstOrDefault(item => item.Id == id);
+            if (request is null)
+            {
+                return false;
+            }
+
+            if (request.IsDone)
+            {
+                return true;
+            }
+
+            var updated = _requests.Select(item => item.Id != id
+                ? item
+                : CopyAsDone(item)).ToList();
+            Save(updated);
+            request.IsDone = true;
+            return true;
+        }
+    }
+
     private static StoredTextRequest CopyWithVote(StoredTextRequest request, Guid userId)
     {
         var voterIds = new List<Guid>(request.VoterIds);
@@ -107,7 +131,22 @@ public sealed class TextRequestStore
             Notes = request.Notes,
             RequestedBy = request.RequestedBy,
             CreatedAtUtc = request.CreatedAtUtc,
-            VoterIds = voterIds
+            VoterIds = voterIds,
+            IsDone = request.IsDone
+        };
+    }
+
+    private static StoredTextRequest CopyAsDone(StoredTextRequest request)
+    {
+        return new StoredTextRequest
+        {
+            Id = request.Id,
+            Title = request.Title,
+            Notes = request.Notes,
+            RequestedBy = request.RequestedBy,
+            CreatedAtUtc = request.CreatedAtUtc,
+            VoterIds = request.VoterIds,
+            IsDone = true
         };
     }
 
@@ -120,7 +159,8 @@ public sealed class TextRequestStore
             RequestedBy = request.RequestedBy,
             CreatedAtUtc = request.CreatedAtUtc,
             VoteCount = request.VoterIds.Count,
-            HasVoted = request.VoterIds.Contains(userId)
+            HasVoted = request.VoterIds.Contains(userId),
+            IsDone = request.IsDone
         };
 
     private void Save(IReadOnlyCollection<StoredTextRequest> requests)
@@ -149,5 +189,8 @@ public sealed class TextRequestStore
 
         [JsonPropertyName("voterIds")]
         public List<Guid> VoterIds { get; set; } = new();
+
+        [JsonPropertyName("isDone")]
+        public bool IsDone { get; set; }
     }
 }

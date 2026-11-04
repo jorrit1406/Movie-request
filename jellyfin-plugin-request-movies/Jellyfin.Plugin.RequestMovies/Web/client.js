@@ -134,7 +134,8 @@
         var title = el('input', { class: 'rm-input', type: 'text', maxlength: '120', required: 'required', placeholder: 'Title' });
         var notes = el('textarea', { class: 'rm-input', rows: '3', maxlength: '500', placeholder: 'Notes (optional)' });
         var submit = el('button', { class: 'rm-btn', type: 'submit', text: 'Add to list' });
-        var list = el('div', { class: 'rm-text-list', 'aria-live': 'polite' });
+        var list = el('div', { class: 'rm-text-list rm-active-list', 'aria-live': 'polite' });
+        var doneList = el('div', { class: 'rm-text-list rm-done-list', 'aria-live': 'polite' });
         form.appendChild(title);
         form.appendChild(notes);
         form.appendChild(submit);
@@ -147,28 +148,36 @@
                 title.value = '';
                 notes.value = '';
                 setMsg(form, 'Added to the list.', false);
-                loadTextRequests(list);
+                loadTextRequests(list, doneList);
             }, function (error) {
                 errorMessage(error).then(function (message) { setMsg(form, message, true); });
             }).then(function () { submit.disabled = false; }, function () { submit.disabled = false; });
         });
         inner.appendChild(status);
         inner.appendChild(form);
+        inner.appendChild(el('h2', { text: 'Requests' }));
         inner.appendChild(list);
+        inner.appendChild(el('h2', { text: 'Done' }));
+        inner.appendChild(doneList);
         textPage.appendChild(inner);
         document.body.appendChild(textPage);
         return textPage;
     }
 
-    function renderTextRequests(list, requests) {
+    function renderTextRequests(list, doneList, requests) {
         list.textContent = '';
-        if (!requests.length) {
+        doneList.textContent = '';
+        var activeRequests = requests.filter(function (request) { return !request.isDone; });
+        var doneRequests = requests.filter(function (request) { return request.isDone; });
+        if (!activeRequests.length) {
             list.appendChild(el('p', { class: 'rm-note', text: 'The list is empty.' }));
-            return;
+        }
+        if (!doneRequests.length) {
+            doneList.appendChild(el('p', { class: 'rm-note', text: 'No completed requests yet.' }));
         }
 
         var isAdmin = ApiClient.isCurrentUserAdministrator && ApiClient.isCurrentUserAdministrator();
-        requests.forEach(function (request) {
+        activeRequests.forEach(function (request) {
             var entry = el('article', { class: 'rm-text-entry' });
             entry.appendChild(el('div', { class: 'rm-text-entry-title', text: request.title }));
             if (request.notes) { entry.appendChild(el('p', { text: request.notes })); }
@@ -188,7 +197,7 @@
                 onclick: function () {
                     vote.disabled = true;
                     call('POST', 'TextRequests/' + encodeURIComponent(request.id) + '/Vote').then(function () {
-                        loadTextRequests(list);
+                        loadTextRequests(list, doneList);
                     }, function (error) {
                         errorMessage(error).then(function (message) { setMsg(entry, message, true); });
                         vote.disabled = false;
@@ -202,7 +211,19 @@
                     class: 'rm-btn secondary', type: 'button', text: 'Remove',
                     onclick: function () {
                         call('DELETE', 'TextRequests/' + encodeURIComponent(request.id)).then(function () {
-                            loadTextRequests(list);
+                            loadTextRequests(list, doneList);
+                        }, function (error) {
+                            errorMessage(error).then(function (message) { setMsg(entry, message, true); });
+                        });
+                    }
+                }));
+            }
+            if (isAdmin) {
+                actions.appendChild(el('button', {
+                    class: 'rm-btn secondary', type: 'button', text: 'Mark done',
+                    onclick: function () {
+                        call('POST', 'TextRequests/' + encodeURIComponent(request.id) + '/Done').then(function () {
+                            loadTextRequests(list, doneList);
                         }, function (error) {
                             errorMessage(error).then(function (message) { setMsg(entry, message, true); });
                         });
@@ -212,15 +233,45 @@
             entry.appendChild(actions);
             list.appendChild(entry);
         });
+
+        doneRequests.forEach(function (request) {
+            var entry = el('article', { class: 'rm-text-entry' });
+            entry.appendChild(el('div', { class: 'rm-text-entry-title', text: request.title + ' · Done' }));
+            if (request.notes) { entry.appendChild(el('p', { text: request.notes })); }
+            var date = new Date(request.createdAtUtc);
+            var metadata = request.requestedBy + ' · ' + (isNaN(date.getTime()) ? '' : date.toLocaleString());
+            entry.appendChild(el('div', { class: 'rm-text-entry-meta', text: metadata }));
+            var actions = el('div', { class: 'rm-text-entry-actions' });
+            actions.appendChild(el('span', {
+                class: 'rm-text-vote-count',
+                text: request.voteCount + (request.voteCount === 1 ? ' vote' : ' votes')
+            }));
+            if (isAdmin) {
+                actions.appendChild(el('button', {
+                    class: 'rm-btn secondary', type: 'button', text: 'Remove',
+                    onclick: function () {
+                        call('DELETE', 'TextRequests/' + encodeURIComponent(request.id)).then(function () {
+                            loadTextRequests(list, doneList);
+                        }, function (error) {
+                            errorMessage(error).then(function (message) { setMsg(entry, message, true); });
+                        });
+                    }
+                }));
+            }
+            entry.appendChild(actions);
+            doneList.appendChild(entry);
+        });
     }
 
-    function loadTextRequests(list) {
-        list.textContent = 'Loading list…';
+    function loadTextRequests(list, doneList) {
+        list.textContent = 'Loading list...';
+        doneList.textContent = '';
         call('GET', 'TextRequests').then(function (requests) {
-            renderTextRequests(list, requests);
+            renderTextRequests(list, doneList, requests);
         }, function (error) {
             list.textContent = '';
             list.appendChild(el('p', { class: 'rm-note err', text: 'Could not load the list.' }));
+            doneList.textContent = '';
             errorMessage(error).then(function (message) {
                 list.appendChild(el('p', { class: 'rm-note err', text: message }));
             });
@@ -232,11 +283,12 @@
         page.hidden = false;
         var status = page.querySelector('.rm-text-status');
         var form = page.querySelector('.rm-text-form');
-        var list = page.querySelector('.rm-text-list');
+        var list = page.querySelector('.rm-active-list');
+        var doneList = page.querySelector('.rm-done-list');
         status.hidden = false;
         status.hidden = true;
         form.hidden = false;
-        loadTextRequests(list);
+        loadTextRequests(list, doneList);
     }
 
     function ensureTextNavigation() {

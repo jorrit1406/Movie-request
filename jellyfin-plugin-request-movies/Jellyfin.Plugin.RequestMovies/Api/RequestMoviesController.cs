@@ -135,6 +135,13 @@ public class RequestMoviesController : ControllerBase
         return _textRequests.Delete(id) ? Ok(new { ok = true }) : NotFound();
     }
 
+    [HttpPost("TextRequests/{id:guid}/Done")]
+    [Authorize(Policy = "RequiresElevation")]
+    public ActionResult MarkTextRequestDone(Guid id)
+    {
+        return _textRequests.MarkDone(id) ? Ok(new { ok = true }) : NotFound();
+    }
+
     /// <summary>Résultats « disponible à la demande » (absents de la bibliothèque).</summary>
     [HttpGet("Search")]
     [Authorize]

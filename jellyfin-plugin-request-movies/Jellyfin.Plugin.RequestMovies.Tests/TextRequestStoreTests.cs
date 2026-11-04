@@ -27,6 +27,36 @@ public class TextRequestStoreTests
             Assert.Equal("Saved title", request.Title);
             Assert.Equal(0, request.VoteCount);
             Assert.False(request.HasVoted);
+            Assert.False(request.IsDone);
+        }
+        finally
+        {
+            Directory.Delete(dataPath, true);
+        }
+    }
+
+    [Fact]
+    public void MarkingRequestDonePersistsAndKeepsItInTheList()
+    {
+        var dataPath = Path.Combine(Path.GetTempPath(), "RequestMoviesTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dataPath);
+        try
+        {
+            var store = new TextRequestStore(CreateApplicationPaths(dataPath));
+            var request = store.Add("Finished title", string.Empty, "User");
+            var userId = Guid.NewGuid();
+            Assert.NotNull(store.ToggleVote(request.Id, userId));
+
+            Assert.True(store.MarkDone(request.Id));
+            Assert.True(store.MarkDone(request.Id));
+            Assert.False(store.MarkDone(Guid.NewGuid()));
+
+            var reloaded = new TextRequestStore(CreateApplicationPaths(dataPath));
+            var savedRequest = Assert.Single(reloaded.GetAll(userId));
+            Assert.Equal(request.Id, savedRequest.Id);
+            Assert.Equal(1, savedRequest.VoteCount);
+            Assert.True(savedRequest.HasVoted);
+            Assert.True(savedRequest.IsDone);
         }
         finally
         {

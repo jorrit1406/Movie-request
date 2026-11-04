@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
@@ -144,4 +145,24 @@ public sealed class StuckItemDto
     [JsonPropertyName("attempts")] public int Attempts { get; set; }
 
     [JsonPropertyName("firstSeenUtc")] public string FirstSeenUtc { get; set; } = string.Empty;
+}
+
+public sealed class TextRequestDto
+{
+    [JsonPropertyName("id")] public Guid Id { get; set; }
+
+    [JsonPropertyName("title")] public string Title { get; set; } = string.Empty;
+
+    [JsonPropertyName("notes")] public string Notes { get; set; } = string.Empty;
+
+    [JsonPropertyName("requestedBy")] public string RequestedBy { get; set; } = string.Empty;
+
+    [JsonPropertyName("createdAtUtc")] public DateTime CreatedAtUtc { get; set; }
+}
+
+public sealed class CreateTextRequestBody
+{
+    [JsonPropertyName("title")] public string Title { get; set; } = string.Empty;
+
+    [JsonPropertyName("notes")] public string? Notes { get; set; }
 }

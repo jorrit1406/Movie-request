@@ -1,7 +1,7 @@
 # Jellyfin Request Movies
 
-Plugin pour Jellyfin 10.11 et 12.4 : recherche de films et séries à la demande (via **Seerr**), demande avec choix
-de qualité, statut sur la fiche, disponibilité réelle et signalement de problèmes — sans quitter Jellyfin.
+Plugin pour Jellyfin 10.11 et 12.4 : utilisez une liste partagée de demandes textuelles sans service externe, ou
+recherchez et demandez des films et séries via **Seerr**, avec choix de qualité et suivi dans Jellyfin.
 
 > ⚠️ **Pas encore testé sur une instance Jellyfin réelle.**
 
@@ -14,6 +14,7 @@ Les releases publient un paquet distinct pour Jellyfin 10.11 (`targetAbi` 10.11.
 
 
 ## Fonctionnalités
+- **Mode liste textuelle** : liste partagée de titres, sans appel à Seerr ou TMDB ; tous les utilisateurs Jellyfin authentifiés peuvent la consulter et ajouter des titres. Les administrateurs peuvent supprimer les entrées.
 - **Recherche** : section « Disponible à la demande » (résultats Seerr absents de la bibliothèque) sur la page de recherche.
 - **Demande** : bouton « Demander », choix 1080p/4K, saisons pour les séries, doublons évités (ID TMDB).
 - **Statut sur la fiche** : Demander, En attente d’approbation, Demande acceptée, Traitement en cours,
@@ -23,6 +24,20 @@ Les releases publient un paquet distinct pour Jellyfin 10.11 (`targetAbi` 10.11.
 - **Permissions** : demandes désactivables par utilisateur, suspension globale.
 - **Signalements** : bouton sur la fiche, transmis comme *Issue* Seerr (commentaire, saison, épisode).
 - **Quotas et approbation** : gérés par Seerr ; le plugin affiche clairement ses refus.
+
+## Installation de l’interface Web
+
+Le paquet du plugin ne charge pas automatiquement son script dans Jellyfin Web. Sans le chargeur, ni la liste latérale ni les contrôles de demande ne peuvent apparaître.
+
+Pour une installation Linux par paquet, depuis le dossier du dépôt :
+
+```sh
+sudo bash scripts/install-web-loader.sh /usr/share/jellyfin/web/index.html
+```
+
+Pour Docker, le script doit être exécuté dans le conteneur ou sur le fichier `index.html` correspondant au chemin monté par Jellyfin Web. Une mise à jour de Jellyfin peut remplacer ce fichier ; dans ce cas, réinstallez le chargeur. Après l’installation du chargeur ou un changement de mode, rechargez Jellyfin Web (Ctrl+F5).
+
+Dans les réglages du plugin, activez **Mode liste textuelle uniquement** et enregistrez. Les entrées sont stockées dans le dossier de données du plugin Jellyfin.
 
 ## Principes
 Logique métier et autorisations côté serveur · clé API Seerr jamais exposée · interface minimaliste ·

@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Jellyfin.Plugin.RequestMovies.Models;
 using Jellyfin.Plugin.RequestMovies.Seerr;
 using Jellyfin.Plugin.RequestMovies.Services;
+using MediaBrowser.Controller.Library;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -31,19 +32,25 @@ public class RequestMoviesController : ControllerBase
     private readonly AvailabilityService _availability;
     private readonly RateLimiter _limiter;
     private readonly IHttpClientFactory _http;
+    private readonly TextRequestStore _textRequests;
+    private readonly IUserManager _users;
 
     public RequestMoviesController(
         SeerrClient seerr,
         MediaService media,
         AvailabilityService availability,
         RateLimiter limiter,
-        IHttpClientFactory http)
+        IHttpClientFactory http,
+        TextRequestStore textRequests,
+        IUserManager users)
     {
         _seerr = seerr;
         _media = media;
         _availability = availability;
         _limiter = limiter;
         _http = http;
+        _textRequests = textRequests;
+        _users = users;
     }
 
     private Guid? CurrentUserId()
@@ -51,11 +58,72 @@ public class RequestMoviesController : ControllerBase
 
     private static int Limit(int configured) => configured;
 
+    private static bool TextOnlyMode => Plugin.Instance?.Configuration.TextOnlyMode == true;
+
     // ------------------------------------------------------------------ utilisateur authentifié
 
     [HttpGet("Ping")]
     [Authorize]
     public ActionResult<object> Ping() => Ok(new { plugin = "RequestMovies", ok = true });
+
+    [HttpGet("Mode")]
+    [Authorize]
+    public ActionResult<object> Mode() => Ok(new { textOnlyMode = TextOnlyMode });
+
+    [HttpGet("TextRequests")]
+    [Authorize]
+    public ActionResult GetTextRequests()
+    {
+        if (!TextOnlyMode)
+        {
+            return Conflict(new { message = "La liste textuelle n’est pas activée." });
+        }
+
+        return Ok(_textRequests.GetAll());
+    }
+
+    [HttpPost("TextRequests")]
+    [Authorize]
+    public ActionResult AddTextRequest([FromBody] CreateTextRequestBody body)
+    {
+        var userId = CurrentUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
+
+        if (!TextOnlyMode)
+        {
+            return Conflict(new { message = "La liste textuelle n’est pas activée." });
+        }
+
+        var title = (body.Title ?? string.Empty).Trim();
+        var notes = (body.Notes ?? string.Empty).Trim();
+        if (title.Length is < 1 or > 120 || notes.Length > 500)
+        {
+            return BadRequest(new { message = "Le titre doit faire 1 à 120 caractères et les notes au maximum 500 caractères." });
+        }
+
+        if (!_limiter.TryAcquire($"text-request:{userId}", 5, TimeSpan.FromMinutes(1)))
+        {
+            return StatusCode(StatusCodes.Status429TooManyRequests, new { message = "Trop de demandes, patientez un instant." });
+        }
+
+        var username = _users.GetUserById(userId.Value)?.Username ?? "Jellyfin";
+        return Ok(_textRequests.Add(title, notes, username));
+    }
+
+    [HttpDelete("TextRequests/{id:guid}")]
+    [Authorize(Policy = "RequiresElevation")]
+    public ActionResult DeleteTextRequest(Guid id)
+    {
+        if (!TextOnlyMode)
+        {
+            return Conflict(new { message = "La liste textuelle n’est pas activée." });
+        }
+
+        return _textRequests.Delete(id) ? Ok(new { ok = true }) : NotFound();
+    }
 
     /// <summary>Résultats « disponible à la demande » (absents de la bibliothèque).</summary>
     [HttpGet("Search")]
@@ -66,6 +134,11 @@ public class RequestMoviesController : ControllerBase
         if (userId is null)
         {
             return Unauthorized();
+        }
+
+        if (TextOnlyMode)
+        {
+            return Conflict(new { message = "La recherche externe est désactivée en mode texte." });
         }
 
         var q = (query ?? string.Empty).Trim();
@@ -93,6 +166,11 @@ public class RequestMoviesController : ControllerBase
             return Unauthorized();
         }
 
+        if (TextOnlyMode)
+        {
+            return Conflict(new { message = "Les statuts externes sont désactivés en mode texte." });
+        }
+
         if (!MediaService.IsValidMediaType(mediaType) || tmdbId <= 0)
         {
             return BadRequest(new { message = "Média invalide." });
@@ -116,6 +194,11 @@ public class RequestMoviesController : ControllerBase
             return Unauthorized();
         }
 
+        if (TextOnlyMode)
+        {
+            return Conflict(new { message = "Les demandes Seerr sont désactivées en mode texte." });
+        }
+
         if (!_limiter.TryAcquire($"request:{userId}", Limit(Plugin.Instance!.Configuration.RequestsPerMinute), TimeSpan.FromMinutes(1)))
         {
             return StatusCode(StatusCodes.Status429TooManyRequests, new { ok = false, message = "Trop de demandes, patientez un instant." });
@@ -133,6 +216,11 @@ public class RequestMoviesController : ControllerBase
         if (userId is null)
         {
             return Unauthorized();
+        }
+
+        if (TextOnlyMode)
+        {
+            return Conflict(new { message = "Les signalements Seerr sont désactivés en mode texte." });
         }
 
         if (!_limiter.TryAcquire($"report:{userId}", 5, TimeSpan.FromMinutes(1)))
@@ -169,6 +257,11 @@ public class RequestMoviesController : ControllerBase
     [AllowAnonymous]
     public async Task<ActionResult> Poster([FromQuery] string path, CancellationToken ct = default)
     {
+        if (TextOnlyMode)
+        {
+            return NotFound();
+        }
+
         if (string.IsNullOrEmpty(path) || !PosterPath.IsMatch(path))
         {
             return BadRequest();
@@ -210,6 +303,11 @@ public class RequestMoviesController : ControllerBase
     [AllowAnonymous]
     public ActionResult Webhook([FromQuery] string secret)
     {
+        if (TextOnlyMode)
+        {
+            return NotFound();
+        }
+
         var expected = Plugin.Instance?.Configuration.WebhookSecret ?? string.Empty;
         if (expected.Length < 16)
         {
@@ -238,6 +336,11 @@ public class RequestMoviesController : ControllerBase
     [Authorize(Policy = "RequiresElevation")]
     public async Task<ActionResult> SeerrStatus(CancellationToken ct = default)
     {
+        if (TextOnlyMode)
+        {
+            return Conflict(new { message = "Seerr est désactivé en mode texte." });
+        }
+
         try
         {
             var r = await _seerr.GetStatusAsync(ct).ConfigureAwait(false);
@@ -253,6 +356,11 @@ public class RequestMoviesController : ControllerBase
     [Authorize(Policy = "RequiresElevation")]
     public async Task<ActionResult> AdminSync(CancellationToken ct = default)
     {
+        if (TextOnlyMode)
+        {
+            return Conflict(new { message = "La synchronisation Seerr est désactivée en mode texte." });
+        }
+
         var message = await _availability.ReconcileAsync(true, ct).ConfigureAwait(false);
         return Ok(new { message });
     }

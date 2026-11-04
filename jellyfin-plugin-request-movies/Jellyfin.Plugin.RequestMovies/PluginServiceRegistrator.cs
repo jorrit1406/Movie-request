@@ -20,5 +20,6 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
         serviceCollection.AddSingleton<MediaService>();
         serviceCollection.AddSingleton<AvailabilityService>();
         serviceCollection.AddSingleton<RateLimiter>();
+        serviceCollection.AddSingleton<TextRequestStore>();
     }
 }

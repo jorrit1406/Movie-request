@@ -1,0 +1,11 @@
+[
+  {
+    "guid": "6f1d3c52-8a7b-4e0d-9b2a-5c4e7d91a3f8",
+    "name": "Request Movies",
+    "description": "Recherchez et demandez des films et séries (via Seerr) sans quitter Jellyfin.",
+    "overview": "Recherchez et demandez des films et séries (via Seerr) sans quitter Jellyfin.",
+    "owner": "JorritRomijn",
+    "category": "General",
+    "versions": []
+  }
+]

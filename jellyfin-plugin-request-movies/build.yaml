@@ -1,15 +1,15 @@
 ---
 name: "Request Movies"
 guid: "6f1d3c52-8a7b-4e0d-9b2a-5c4e7d91a3f8"
-version: "1.1.0.0"
+version: "1.2.0.0"
 targetAbi: "12.4.0"
 framework: "net10.0"
 owner: "JorritRomijn"
-overview: "Recherchez et demandez des films et séries (via Seerr) sans quitter Jellyfin."
+overview: "Liste textuelle partagée sans service externe, ou demandes de films et séries via Seerr dans Jellyfin."
 description: >
-  Intégration de Seerr dans Jellyfin : résultats « disponible à la demande »,
-  bouton de demande avec choix de qualité, statut sur la fiche, détection de
-  disponibilité réelle et signalement de problèmes (Issues Seerr).
+  Mode liste textuelle partagée sans appel à Seerr ou TMDB, ou intégration Seerr :
+  résultats « disponible à la demande », demandes avec choix de qualité, statuts,
+  détection de disponibilité réelle et signalement de problèmes.
 category: "General"
 artifacts:
   - "Jellyfin.Plugin.RequestMovies.dll"

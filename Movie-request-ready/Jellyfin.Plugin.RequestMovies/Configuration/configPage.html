@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <title>Request Movies</title>
+</head>
+<body>
+<div id="RequestMoviesConfigPage" data-role="page" class="page type-interior pluginConfigurationPage"
+     data-require="emby-input,emby-button,emby-checkbox">
+    <div data-role="content">
+        <div class="content-primary">
+            <h2>Request Movies</h2>
+            <form id="RequestMoviesConfigForm">
+
+                <fieldset class="verticalSection">
+                    <legend><h3>Seerr</h3></legend>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="SeerrUrl">URL de Seerr</label>
+                        <input id="SeerrUrl" type="text" is="emby-input" placeholder="http://seerr:5055" />
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="SeerrApiKey">Clé API Seerr</label>
+                        <input id="SeerrApiKey" type="password" is="emby-input" autocomplete="off" />
+                        <div class="fieldDescription">Stockée côté serveur uniquement, jamais envoyée aux navigateurs.</div>
+                    </div>
+                    <label class="checkboxContainer">
+                        <input id="AutoImportUsers" type="checkbox" is="emby-checkbox" />
+                        <span>Importer automatiquement dans Seerr un utilisateur Jellyfin inconnu lors de sa première demande</span>
+                    </label>
+                    <button id="TestSeerr" is="emby-button" type="button" class="raised"><span>Tester la connexion</span></button>
+                    <div id="TestSeerrResult" class="fieldDescription"></div>
+                </fieldset>
+
+                <fieldset class="verticalSection">
+                    <legend><h3>Qualités proposées</h3></legend>
+                    <div class="fieldDescription">Le profil de qualité et le serveur (Radarr/Sonarr) restent choisis côté serveur. 0 = valeur par défaut de Seerr. Les utilisateurs ne voient que les libellés.</div>
+                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="Label1080">Libellé 1080p</label><input id="Label1080" type="text" is="emby-input" /></div>
+                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="ServerId1080">ID serveur Seerr (1080p)</label><input id="ServerId1080" type="number" min="0" is="emby-input" /></div>
+                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="ProfileId1080">ID profil de qualité (1080p)</label><input id="ProfileId1080" type="number" min="0" is="emby-input" /></div>
+                    <label class="checkboxContainer"><input id="Enable4K" type="checkbox" is="emby-checkbox" /><span>Proposer la 4K</span></label>
+                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="Label4K">Libellé 4K</label><input id="Label4K" type="text" is="emby-input" /></div>
+                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="ServerId4K">ID serveur Seerr (4K)</label><input id="ServerId4K" type="number" min="0" is="emby-input" /></div>
+                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="ProfileId4K">ID profil de qualité (4K)</label><input id="ProfileId4K" type="number" min="0" is="emby-input" /></div>
+                </fieldset>
+
+                <fieldset class="verticalSection">
+                    <legend><h3>Permissions</h3></legend>
+                    <label class="checkboxContainer"><input id="RequestsSuspended" type="checkbox" is="emby-checkbox" /><span>Suspendre temporairement toutes les nouvelles demandes</span></label>
+                    <div class="fieldDescription">Les quotas et l’approbation sont gérés par Seerr. Décochez un utilisateur pour désactiver ses demandes (il garde l’accès à la bibliothèque).</div>
+                    <div id="UsersList"></div>
+                </fieldset>
+
+                <fieldset class="verticalSection">
+                    <legend><h3>Disponibilité réelle et synchronisation</h3></legend>
+                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="MinRefreshIntervalMinutes">Délai minimal entre deux rafraîchissements (minutes)</label><input id="MinRefreshIntervalMinutes" type="number" min="1" is="emby-input" /></div>
+                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="MaxRefreshAttempts">Tentatives maximales par média</label><input id="MaxRefreshAttempts" type="number" min="1" is="emby-input" /></div>
+                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="MaxWaitHours">Attente maximale avant intervention manuelle (heures)</label><input id="MaxWaitHours" type="number" min="1" is="emby-input" /></div>
+                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="WebhookSecret">Secret du webhook Seerr</label><input id="WebhookSecret" type="text" is="emby-input" readonly /></div>
+                    <div class="fieldDescription">URL du webhook (Seerr &gt; Réglages &gt; Notifications &gt; Webhook, type de notification : « Média disponible ») :</div>
+                    <div id="WebhookUrl" class="fieldDescription" style="word-break:break-all"></div>
+                    <button id="SyncNow" is="emby-button" type="button" class="raised"><span>Vérifier maintenant</span></button>
+                    <div id="SyncResult" class="fieldDescription"></div>
+                    <div class="fieldDescription">Médias bloqués (récupération manuelle) :</div>
+                    <pre id="StuckList" style="white-space:pre-wrap"></pre>
+                </fieldset>
+
+                <fieldset class="verticalSection">
+                    <legend><h3>Performance et protection</h3></legend>
+                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="SearchCacheSeconds">Cache de recherche (secondes)</label><input id="SearchCacheSeconds" type="number" min="1" is="emby-input" /></div>
+                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="StatusCacheSeconds">Cache de statut (secondes)</label><input id="StatusCacheSeconds" type="number" min="1" is="emby-input" /></div>
+                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="SearchPerMinute">Recherches max. par utilisateur et par minute (0 = illimité)</label><input id="SearchPerMinute" type="number" min="0" is="emby-input" /></div>
+                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="RequestsPerMinute">Demandes max. par utilisateur et par minute (0 = illimité)</label><input id="RequestsPerMinute" type="number" min="0" is="emby-input" /></div>
+                </fieldset>
+
+                <div>
+                    <button is="emby-button" type="submit" class="raised button-submit block"><span>Enregistrer</span></button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script type="text/javascript">
+        (function () {
+            var PluginId = '6f1d3c52-8a7b-4e0d-9b2a-5c4e7d91a3f8';
+            var page = document.querySelector('#RequestMoviesConfigPage');
+            var NUM = ['ServerId1080', 'ProfileId1080', 'ServerId4K', 'ProfileId4K', 'SearchCacheSeconds', 'StatusCacheSeconds',
+                'SearchPerMinute', 'RequestsPerMinute', 'MinRefreshIntervalMinutes', 'MaxRefreshAttempts', 'MaxWaitHours'];
+            var TXT = ['SeerrUrl', 'SeerrApiKey', 'Label1080', 'Label4K', 'WebhookSecret'];
+            var BOOL = ['AutoImportUsers', 'Enable4K', 'RequestsSuspended'];
+
+            function $(id) { return page.querySelector('#' + id); }
+            function norm(id) { return String(id).replace(/-/g, '').toLowerCase(); }
+
+            function randomSecret() {
+                var a = new Uint8Array(24);
+                (window.crypto || window.msCrypto).getRandomValues(a);
+                return Array.prototype.map.call(a, function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+            }
+
+            function showWebhook(secret) {
+                $('WebhookUrl').textContent = secret
+                    ? ApiClient.getUrl('RequestMovies/Webhook', { secret: secret })
+                    : '';
+            }
+
+            function renderUsers(users, disabled) {
+                var box = $('UsersList');
+                box.textContent = '';
+                var off = (disabled || []).map(norm);
+                users.forEach(function (u) {
+                    var label = document.createElement('label');
+                    label.className = 'checkboxContainer';
+                    var cb = document.createElement('input');
+                    cb.type = 'checkbox';
+                    cb.setAttribute('is', 'emby-checkbox');
+                    cb.dataset.userId = norm(u.Id);
+                    cb.checked = off.indexOf(norm(u.Id)) === -1;
+                    var span = document.createElement('span');
+                    span.textContent = u.Name + ' — demandes autorisées';
+                    label.appendChild(cb);
+                    label.appendChild(span);
+                    box.appendChild(label);
+                });
+            }
+
+            function refreshStuck() {
+                ApiClient.ajax({ type: 'GET', url: ApiClient.getUrl('RequestMovies/Admin/Stuck'), dataType: 'json' }).then(function (list) {
+                    $('StuckList').textContent = list.length
+                        ? list.map(function (s) { return s.key + ' — ' + s.attempts + ' tentative(s) depuis ' + s.firstSeenUtc; }).join('\n')
+                        : 'Aucun.';
+                }, function () { $('StuckList').textContent = 'Indisponible.'; });
+            }
+
+            page.addEventListener('pageshow', function () {
+                Dashboard.showLoadingMsg();
+                Promise.all([ApiClient.getPluginConfiguration(PluginId), ApiClient.getUsers()]).then(function (res) {
+                    var c = res[0];
+                    TXT.forEach(function (k) { $(k).value = c[k] || ''; });
+                    NUM.forEach(function (k) { $(k).value = c[k] != null ? c[k] : 0; });
+                    BOOL.forEach(function (k) { $(k).checked = !!c[k]; });
+                    if (!$('WebhookSecret').value) { $('WebhookSecret').value = randomSecret(); }
+                    showWebhook($('WebhookSecret').value);
+                    renderUsers(res[1], c.DisabledUserIds);
+                    refreshStuck();
+                    Dashboard.hideLoadingMsg();
+                });
+            });
+
+            $('TestSeerr').addEventListener('click', function () {
+                $('TestSeerrResult').textContent = 'Enregistrez d’abord la configuration, puis testez… test en cours.';
+                ApiClient.ajax({ type: 'GET', url: ApiClient.getUrl('RequestMovies/SeerrStatus'), dataType: 'json' }).then(function (r) {
+                    $('TestSeerrResult').textContent = 'Connexion réussie (Seerr ' + (r.version || '?') + ').';
+                }, function () { $('TestSeerrResult').textContent = 'Échec de la connexion : vérifiez l’URL et la clé API (enregistrées).'; });
+            });
+
+            $('SyncNow').addEventListener('click', function () {
+                $('SyncResult').textContent = 'Vérification en cours…';
+                ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('RequestMovies/Admin/Sync'), dataType: 'json' }).then(function (r) {
+                    $('SyncResult').textContent = r.message;
+                    refreshStuck();
+                }, function () { $('SyncResult').textContent = 'Échec de la vérification.'; });
+            });
+
+            page.querySelector('#RequestMoviesConfigForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                Dashboard.showLoadingMsg();
+                ApiClient.getPluginConfiguration(PluginId).then(function (c) {
+                    TXT.forEach(function (k) { c[k] = $(k).value.trim(); });
+                    NUM.forEach(function (k) { c[k] = parseInt($(k).value, 10) || 0; });
+                    BOOL.forEach(function (k) { c[k] = $(k).checked; });
+                    c.SeerrUrl = c.SeerrUrl.replace(/\/+$/, '');
+                    c.DisabledUserIds = Array.prototype.filter.call($('UsersList').querySelectorAll('input[type=checkbox]'),
+                        function (cb) { return !cb.checked; }).map(function (cb) { return cb.dataset.userId; });
+                    ApiClient.updatePluginConfiguration(PluginId, c).then(Dashboard.processPluginConfigurationUpdateResult);
+                });
+                return false;
+            });
+        })();
+    </script>
+</div>
+</body>
+</html>

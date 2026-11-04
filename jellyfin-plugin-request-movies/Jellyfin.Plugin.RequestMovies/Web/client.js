@@ -8,6 +8,9 @@
     window.__requestMoviesLoaded = true;
 
     var BASE = 'RequestMovies';
+    var textOnlyMode = null;
+    var modeLoading = false;
+    var textPage = null;
     var REPORT_CATEGORIES = [
         ['playback', 'Erreur de lecture'],
         ['nosound', 'Absence de son'],
@@ -82,7 +85,15 @@
             '.rm-panel{margin:1em 3.3%;padding:.8em 1em;border-radius:.5em;background:rgba(127,127,127,.15)}',
             '.rm-seasons{display:flex;flex-direction:column;gap:.3em;margin:.5em 0}',
             '.rm-note{opacity:.8;font-size:.9em}.rm-msg{margin-top:.4em}.rm-msg.err{color:#ef5350}',
-            '.rm-form{display:flex;flex-direction:column;gap:.5em;margin-top:.6em;max-width:28em}'
+            '.rm-form{display:flex;flex-direction:column;gap:.5em;margin-top:.6em;max-width:28em}',
+            '.rm-text-page{position:fixed;inset:0;z-index:10000;overflow:auto;background:var(--theme-body-bg,#101010);padding:2em;box-sizing:border-box}',
+            '.rm-text-page-inner{max-width:52em;margin:0 auto}',
+            '.rm-text-header{display:flex;justify-content:space-between;align-items:center;gap:1em}',
+            '.rm-text-entry{padding:1em;margin:.75em 0;border-radius:.5em;background:rgba(127,127,127,.15)}',
+            '.rm-text-entry-title{font-size:1.15em;font-weight:600}',
+            '.rm-text-entry-meta{opacity:.7;font-size:.9em;margin-top:.5em}',
+            '.rm-text-form{max-width:none;padding:1em 0}',
+            '.rm-text-nav .navMenuOptionText{display:inline}'
         ].join('');
         document.head.appendChild(el('style', { id: 'rm-style', text: css }));
     }
@@ -102,6 +113,118 @@
         if (!m) { m = el('div', { class: 'rm-msg' }); container.appendChild(m); }
         m.className = 'rm-msg' + (isError ? ' err' : '');
         m.textContent = text;
+    }
+
+    function ensureTextPage() {
+        if (textPage) { return textPage; }
+        textPage = el('div', { class: 'rm-text-page', hidden: '' });
+        var inner = el('div', { class: 'rm-text-page-inner' });
+        var close = el('button', {
+            class: 'rm-btn secondary', type: 'button', text: 'Sluiten',
+            onclick: function () { textPage.hidden = true; }
+        });
+        inner.appendChild(el('div', { class: 'rm-text-header' }, [
+            el('h1', { text: 'Gedeelde aanvragenlijst' }),
+            close
+        ]));
+        inner.appendChild(el('p', { class: 'rm-note', text: 'Voeg een titel toe aan de lijst. Iedereen met toegang tot Jellyfin kan deze lijst bekijken.' }));
+
+        var form = el('form', { class: 'rm-form rm-text-form' });
+        var title = el('input', { class: 'rm-input', type: 'text', maxlength: '120', required: 'required', placeholder: 'Titel' });
+        var notes = el('textarea', { class: 'rm-input', rows: '3', maxlength: '500', placeholder: 'Toelichting (optioneel)' });
+        var submit = el('button', { class: 'rm-btn', type: 'submit', text: 'Toevoegen' });
+        var list = el('div', { class: 'rm-text-list', 'aria-live': 'polite' });
+        form.appendChild(title);
+        form.appendChild(notes);
+        form.appendChild(submit);
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+            var value = title.value.trim();
+            if (!value) { setMsg(form, 'Vul een titel in.', true); return; }
+            submit.disabled = true;
+            call('POST', 'TextRequests', null, { title: value, notes: notes.value.trim() }).then(function () {
+                title.value = '';
+                notes.value = '';
+                setMsg(form, 'Toegevoegd aan de lijst.', false);
+                loadTextRequests(list);
+            }, function (error) {
+                errorMessage(error).then(function (message) { setMsg(form, message, true); });
+            }).then(function () { submit.disabled = false; }, function () { submit.disabled = false; });
+        });
+        inner.appendChild(form);
+        inner.appendChild(list);
+        textPage.appendChild(inner);
+        document.body.appendChild(textPage);
+        return textPage;
+    }
+
+    function renderTextRequests(list, requests) {
+        list.textContent = '';
+        if (!requests.length) {
+            list.appendChild(el('p', { class: 'rm-note', text: 'De lijst is nog leeg.' }));
+            return;
+        }
+
+        var isAdmin = ApiClient.isCurrentUserAdministrator && ApiClient.isCurrentUserAdministrator();
+        requests.forEach(function (request) {
+            var entry = el('article', { class: 'rm-text-entry' });
+            entry.appendChild(el('div', { class: 'rm-text-entry-title', text: request.title }));
+            if (request.notes) { entry.appendChild(el('p', { text: request.notes })); }
+            var date = new Date(request.createdAtUtc);
+            var metadata = request.requestedBy + ' · ' + (isNaN(date.getTime()) ? '' : date.toLocaleString());
+            entry.appendChild(el('div', { class: 'rm-text-entry-meta', text: metadata }));
+            if (isAdmin) {
+                entry.appendChild(el('button', {
+                    class: 'rm-btn secondary', type: 'button', text: 'Verwijderen',
+                    onclick: function () {
+                        call('DELETE', 'TextRequests/' + encodeURIComponent(request.id)).then(function () {
+                            loadTextRequests(list);
+                        }, function (error) {
+                            errorMessage(error).then(function (message) { setMsg(entry, message, true); });
+                        });
+                    }
+                }));
+            }
+            list.appendChild(entry);
+        });
+    }
+
+    function loadTextRequests(list) {
+        list.textContent = 'Lijst laden…';
+        call('GET', 'TextRequests').then(function (requests) {
+            renderTextRequests(list, requests);
+        }, function (error) {
+            list.textContent = '';
+            list.appendChild(el('p', { class: 'rm-note err', text: 'De lijst kon niet worden geladen.' }));
+            errorMessage(error).then(function (message) {
+                list.appendChild(el('p', { class: 'rm-note err', text: message }));
+            });
+        });
+    }
+
+    function showTextList() {
+        var page = ensureTextPage();
+        page.hidden = false;
+        loadTextRequests(page.querySelector('.rm-text-list'));
+    }
+
+    function ensureTextNavigation() {
+        var drawer = document.querySelector('#navDrawer .mainDrawer-scrollContainer')
+            || document.querySelector('.mainDrawer-scrollContainer')
+            || document.querySelector('#navDrawer');
+        if (!drawer || drawer.querySelector('[data-rm-nav]')) { return; }
+        var link = document.createElement('a');
+        link.className = 'navMenuOption lnk rm-text-nav';
+        link.href = '#';
+        link.dataset.rmNav = 'true';
+        link.appendChild(el('span', { class: 'material-icons navMenuOptionIcon', text: 'playlist_add' }));
+        link.appendChild(el('span', { class: 'navMenuOptionText', text: 'Aanvragenlijst' }));
+        link.addEventListener('click', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            showTextList();
+        });
+        drawer.appendChild(link);
     }
 
     // ------------------------------------------------------------------ recherche : « Disponible à la demande »
@@ -392,7 +515,24 @@
 
     var tick = debounce(function () {
         if (!window.ApiClient || !ApiClient.accessToken || !ApiClient.accessToken()) { return; }
-        try { ensureSearch(); ensureDetails(); } catch (e) { /* ne jamais casser l’interface native */ }
+        if (textOnlyMode === null) {
+            if (modeLoading) { return; }
+            modeLoading = true;
+            call('GET', 'Mode').then(function (mode) {
+                textOnlyMode = !!mode.textOnlyMode;
+                modeLoading = false;
+                tick();
+            }, function () {
+                textOnlyMode = false;
+                modeLoading = false;
+                tick();
+            });
+            return;
+        }
+        try {
+            if (textOnlyMode) { ensureTextNavigation(); }
+            else { ensureSearch(); ensureDetails(); }
+        } catch (e) { /* ne jamais casser l’interface native */ }
     }, 250);
 
     function start() {

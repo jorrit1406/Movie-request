@@ -2,11 +2,20 @@ name: Release
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version without the v prefix (for example 1.1.0)
+        required: true
+        default: 1.2.0
+        type: string
 permissions:
   contents: write
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
     defaults:
       run:
         working-directory: jellyfin-plugin-request-movies
@@ -23,17 +32,25 @@ jobs:
       - run: dotnet test RequestMovies.slnx -c Release
       - name: Build packages and update manifest
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${RELEASE_VERSION:-${GITHUB_REF_NAME#v}}"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Release version must use the format major.minor.patch (for example 1.1.0)." >&2
+            exit 1
+          fi
+          TAG="v${VERSION}"
           mkdir -p dist
           dotnet build Jellyfin.Plugin.RequestMovies/Jellyfin.Plugin.RequestMovies.csproj -c Release -f net9.0 -p:Version="$VERSION" -p:AssemblyVersion="$VERSION.0" -p:FileVersion="$VERSION.0"
           dotnet build Jellyfin.Plugin.RequestMovies/Jellyfin.Plugin.RequestMovies.csproj -c Release -f net10.0 -p:Version="$VERSION" -p:AssemblyVersion="$VERSION.0" -p:FileVersion="$VERSION.0"
           zip -j "dist/request-movies_10.11_${VERSION}.zip" Jellyfin.Plugin.RequestMovies/bin/Release/net9.0/Jellyfin.Plugin.RequestMovies.dll
           zip -j "dist/request-movies_12.4_${VERSION}.zip" Jellyfin.Plugin.RequestMovies/bin/Release/net10.0/Jellyfin.Plugin.RequestMovies.dll
-          python3 scripts/update-manifest.py "$VERSION" "dist/request-movies_10.11_${VERSION}.zip" "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/request-movies_10.11_${VERSION}.zip" "10.11.0"
-          python3 scripts/update-manifest.py "$VERSION" "dist/request-movies_12.4_${VERSION}.zip" "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/request-movies_12.4_${VERSION}.zip" "12.4.0"
+          python3 scripts/update-manifest.py "$VERSION" "dist/request-movies_10.11_${VERSION}.zip" "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/request-movies_10.11_${VERSION}.zip" "10.11.0"
+          python3 scripts/update-manifest.py "$VERSION" "dist/request-movies_12.4_${VERSION}.zip" "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/request-movies_12.4_${VERSION}.zip" "12.4.0"
           cp manifest.json dist/manifest.json
       - uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
+          target_commitish: main
+          name: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
           files: |
             jellyfin-plugin-request-movies/dist/*.zip
             jellyfin-plugin-request-movies/dist/manifest.json
@@ -42,5 +59,5 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@users.noreply.github.com"
           git add manifest.json
-          git commit -m "Manifest ${GITHUB_REF_NAME}" || true
+          git commit -m "Manifest v${RELEASE_VERSION:-${GITHUB_REF_NAME#v}}" || true
           git push origin HEAD:main

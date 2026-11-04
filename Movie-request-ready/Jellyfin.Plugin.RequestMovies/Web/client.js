@@ -1,0 +1,408 @@
+/* Request Movies — script client léger (aucun secret, aucune logique métier).
+ * Affiche ce que le serveur fournit et transmet les actions de l’utilisateur.
+ * Deux zones : résultats « Disponible à la demande » (page de recherche) et panneau de statut (fiche). */
+(function () {
+    'use strict';
+
+    if (window.__requestMoviesLoaded) { return; }
+    window.__requestMoviesLoaded = true;
+
+    var BASE = 'RequestMovies';
+    var REPORT_CATEGORIES = [
+        ['playback', 'Erreur de lecture'],
+        ['nosound', 'Absence de son'],
+        ['avproblem', 'Problème audio/vidéo'],
+        ['subtitles', 'Sous-titres absents ou incorrects'],
+        ['quality', 'Mauvaise qualité'],
+        ['wrongversion', 'Mauvaise version du contenu'],
+        ['wronglanguage', 'Langue incorrecte'],
+        ['wrongitem', 'Film ou épisode incorrect'],
+        ['incomplete', 'Contenu incomplet'],
+        ['other', 'Autre problème']
+    ];
+
+    // ------------------------------------------------------------------ utilitaires
+
+    function call(method, path, params, body) {
+        var opts = { type: method, url: ApiClient.getUrl(BASE + '/' + path, params || undefined), dataType: 'json' };
+        if (body) {
+            opts.data = JSON.stringify(body);
+            opts.contentType = 'application/json';
+        }
+        return ApiClient.ajax(opts);
+    }
+
+    function errorMessage(e) {
+        if (e && typeof e.json === 'function') {
+            return e.json().then(function (j) {
+                return (j && (j.message || j.Message)) || 'Une erreur est survenue.';
+            }, function () { return 'Une erreur est survenue.'; });
+        }
+        return Promise.resolve('Une erreur est survenue.');
+    }
+
+    function el(tag, attrs, children) {
+        var node = document.createElement(tag);
+        Object.keys(attrs || {}).forEach(function (k) {
+            if (k === 'class') { node.className = attrs[k]; }
+            else if (k === 'text') { node.textContent = attrs[k]; }
+            else if (k.indexOf('on') === 0) { node.addEventListener(k.slice(2), attrs[k]); }
+            else { node.setAttribute(k, attrs[k]); }
+        });
+        (children || []).forEach(function (c) { if (c) { node.appendChild(c); } });
+        return node;
+    }
+
+    function debounce(fn, ms) {
+        var t = null;
+        return function () {
+            var args = arguments, self = this;
+            clearTimeout(t);
+            t = setTimeout(function () { fn.apply(self, args); }, ms);
+        };
+    }
+
+    function injectStyle() {
+        if (document.getElementById('rm-style')) { return; }
+        var css = [
+            '.rm-section{margin:1.5em 0;padding:0 3.3%}',
+            '.rm-section h2{margin:0 0 .6em;font-size:1.3em}',
+            '.rm-grid{display:flex;flex-wrap:wrap;gap:1em}',
+            '.rm-card{width:200px;display:flex;flex-direction:column;gap:.4em}',
+            '.rm-card img,.rm-noposter{width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:.4em;background:rgba(127,127,127,.25)}',
+            '.rm-title{font-weight:600}.rm-meta{opacity:.7;font-size:.9em}',
+            '.rm-badge{display:inline-block;padding:.15em .6em;border-radius:1em;background:rgba(127,127,127,.3);font-size:.85em}',
+            '.rm-badge.available{background:#2e7d32;color:#fff}.rm-badge.failed,.rm-badge.declined{background:#b71c1c;color:#fff}',
+            '.rm-badge.importPending,.rm-badge.partial{background:#ef6c00;color:#fff}',
+            '.rm-actions{display:flex;flex-wrap:wrap;gap:.5em;align-items:center;margin-top:.3em}',
+            '.rm-btn{cursor:pointer;border:0;border-radius:.3em;padding:.5em .9em;font:inherit;background:#00a4dc;color:#fff}',
+            '.rm-btn.secondary{background:rgba(127,127,127,.35);color:inherit}',
+            '.rm-btn[disabled]{opacity:.5;cursor:default}',
+            '.rm-select,.rm-input{font:inherit;padding:.4em;border-radius:.3em;max-width:100%}',
+            '.rm-panel{margin:1em 3.3%;padding:.8em 1em;border-radius:.5em;background:rgba(127,127,127,.15)}',
+            '.rm-seasons{display:flex;flex-direction:column;gap:.3em;margin:.5em 0}',
+            '.rm-note{opacity:.8;font-size:.9em}.rm-msg{margin-top:.4em}.rm-msg.err{color:#ef5350}',
+            '.rm-form{display:flex;flex-direction:column;gap:.5em;margin-top:.6em;max-width:28em}'
+        ].join('');
+        document.head.appendChild(el('style', { id: 'rm-style', text: css }));
+    }
+
+    function badge(state, label) { return el('span', { class: 'rm-badge ' + state, text: label }); }
+
+    function qualitySelect(qualities, predicate) {
+        var select = el('select', { class: 'rm-select', 'aria-label': 'Qualité' });
+        qualities.forEach(function (q) {
+            if (!predicate || predicate(q)) { select.appendChild(el('option', { value: q.id, text: q.label })); }
+        });
+        return select;
+    }
+
+    function setMsg(container, text, isError) {
+        var m = container.querySelector('.rm-msg');
+        if (!m) { m = el('div', { class: 'rm-msg' }); container.appendChild(m); }
+        m.className = 'rm-msg' + (isError ? ' err' : '');
+        m.textContent = text;
+    }
+
+    // ------------------------------------------------------------------ recherche : « Disponible à la demande »
+
+    var searchSeq = 0;
+
+    function findSearchInput() {
+        return document.querySelector('.searchFields input, #searchPage input, input.searchfields-txtSearch, input[type="search"]');
+    }
+
+    function onSearchPage() { return /#!?\/search/.test(location.hash); }
+
+    function ensureSearch() {
+        if (!onSearchPage()) { return; }
+        var input = findSearchInput();
+        if (!input || input.__rm) { return; }
+        input.__rm = true;
+        var run = debounce(function () { runSearch(input); }, 450);
+        input.addEventListener('input', run);
+        if (input.value && input.value.trim().length >= 2) { runSearch(input); }
+    }
+
+    function resultsHost(input) {
+        var page = input.closest('.page, [data-role="page"], .view') || document.body;
+        var host = page.querySelector('.rm-section[data-rm="search"]');
+        if (!host) {
+            host = el('div', { class: 'rm-section', 'data-rm': 'search' });
+            page.appendChild(host);
+        }
+        return host;
+    }
+
+    function runSearch(input) {
+        var q = (input.value || '').trim();
+        var host = resultsHost(input);
+        var seq = ++searchSeq;
+        if (q.length < 2) { host.textContent = ''; return; }
+        call('GET', 'Search', { query: q }).then(function (res) {
+            if (seq !== searchSeq) { return; }
+            renderSearch(host, res);
+        }, function () {
+            if (seq !== searchSeq) { return; }
+            host.textContent = '';
+        });
+    }
+
+    function renderSearch(host, res) {
+        host.textContent = '';
+        if (!res.seerrAvailable) {
+            host.appendChild(el('p', { class: 'rm-note', text: 'Les résultats à la demande sont momentanément indisponibles.' }));
+            return;
+        }
+        if (!res.results.length) { return; }
+        host.appendChild(el('h2', { text: 'Disponible à la demande' }));
+        var grid = el('div', { class: 'rm-grid' });
+        res.results.forEach(function (item) { grid.appendChild(renderCard(item, res)); });
+        host.appendChild(grid);
+        if (!res.requestsAllowed && res.blockedReason) {
+            host.appendChild(el('p', { class: 'rm-note', text: res.blockedReason }));
+        }
+    }
+
+    function posterUrl(path) {
+        return path ? ApiClient.getUrl(BASE + '/Poster', { path: path }) : null;
+    }
+
+    function renderCard(item, ctx) {
+        var url = posterUrl(item.poster);
+        var meta = [item.mediaType === 'tv' ? 'Série' : 'Film', item.year].filter(Boolean).join(' · ');
+        var card = el('div', { class: 'rm-card' }, [
+            url ? el('img', { src: url, alt: '', loading: 'lazy' }) : el('div', { class: 'rm-noposter' }),
+            el('div', { class: 'rm-title', text: item.title }),
+            el('div', { class: 'rm-meta', text: meta }),
+            el('div', {}, [badge(item.state, item.stateLabel)])
+        ]);
+        if (item.canRequest) {
+            var actions = el('div', { class: 'rm-actions' });
+            var select = ctx.qualities.length > 1 ? qualitySelect(ctx.qualities) : null;
+            if (select) { actions.appendChild(select); }
+            var btn = el('button', {
+                class: 'rm-btn', type: 'button',
+                text: item.mediaType === 'tv' ? 'Choisir les saisons' : 'Demander',
+                onclick: function () {
+                    if (item.mediaType === 'tv') { openSeasons(card, item, select ? select.value : 'hd'); }
+                    else { sendRequest(card, btn, { mediaType: 'movie', tmdbId: item.tmdbId, quality: select ? select.value : 'hd' }); }
+                }
+            });
+            actions.appendChild(btn);
+            card.appendChild(actions);
+        }
+        return card;
+    }
+
+    function sendRequest(container, btn, body, onDone) {
+        btn.disabled = true;
+        call('POST', 'Request', null, body).then(function (r) {
+            setMsg(container, r.message || 'Demande envoyée.', false);
+            if (onDone) { onDone(); }
+        }, function (e) {
+            errorMessage(e).then(function (m) { setMsg(container, m, true); btn.disabled = false; });
+        });
+    }
+
+    function openSeasons(card, item, quality) {
+        var old = card.querySelector('.rm-seasons-box');
+        if (old) { old.remove(); return; }
+        var box = el('div', { class: 'rm-seasons-box' });
+        card.appendChild(box);
+        renderSeasonPicker(box, item.mediaType, item.tmdbId, quality);
+    }
+
+    // Sélecteur de saisons : sert aussi sur la fiche d’une série.
+    function renderSeasonPicker(box, mediaType, tmdbId, quality) {
+        box.textContent = 'Chargement…';
+        call('GET', 'State', { mediaType: mediaType, tmdbId: tmdbId }).then(function (st) {
+            box.textContent = '';
+            var q = st.qualities.filter(function (x) { return x.id === quality; })[0] || st.qualities[0];
+            var list = el('div', { class: 'rm-seasons' });
+            var checks = [];
+            (q.seasons || []).forEach(function (s) {
+                var cb = el('input', { type: 'checkbox', id: 'rm-s-' + tmdbId + '-' + s.number });
+                cb.disabled = !s.canRequest;
+                cb.checked = s.canRequest;
+                checks.push({ cb: cb, n: s.number });
+                var extra = s.episodes > 0 ? ' (' + s.episodes + (s.episodeCount ? '/' + s.episodeCount : '') + ' ép.)' : '';
+                list.appendChild(el('label', {}, [cb, el('span', { text: ' Saison ' + s.number + ' — ' + s.stateLabel + extra })]));
+            });
+            box.appendChild(list);
+            var btn = el('button', {
+                class: 'rm-btn', type: 'button', text: 'Demander',
+                onclick: function () {
+                    var seasons = checks.filter(function (c) { return c.cb.checked && !c.cb.disabled; }).map(function (c) { return c.n; });
+                    if (!seasons.length) { setMsg(box, 'Sélectionnez au moins une saison.', true); return; }
+                    sendRequest(box, btn, { mediaType: mediaType, tmdbId: tmdbId, quality: q.id, seasons: seasons });
+                }
+            });
+            if (q.canRequest) { box.appendChild(btn); }
+            else { box.appendChild(el('div', { class: 'rm-note', text: st.blockedReason || 'Rien à demander pour cette qualité.' })); }
+        }, function () { box.textContent = 'Statut indisponible.'; });
+    }
+
+    // ------------------------------------------------------------------ fiche : statut, demande, signalement
+
+    function detailsId() {
+        var m = /[?&]id=([0-9a-fA-F]+)/.exec(location.hash);
+        return /#!?\/details/.test(location.hash) && m ? m[1] : null;
+    }
+
+    function ensureDetails() {
+        var id = detailsId();
+        if (!id) { return; }
+        var page = document.querySelector('.itemDetailPage:not(.hide)');
+        if (!page || (page.__rmId === id && page.querySelector('.rm-panel'))) { return; }
+        page.__rmId = id;
+        var userId = ApiClient.getCurrentUserId();
+        ApiClient.getItem(userId, id).then(function (item) {
+            if (page.__rmId !== id) { return; }
+            var type = item.Type;
+            var info = { season: null, episode: null };
+            if (type === 'Episode') { info.season = item.ParentIndexNumber; info.episode = item.IndexNumber; }
+            if (type === 'Season') { info.season = item.IndexNumber; }
+            if (type === 'Movie' || type === 'Series') { return { item: item, info: info }; }
+            if ((type === 'Episode' || type === 'Season') && item.SeriesId) {
+                return ApiClient.getItem(userId, item.SeriesId).then(function (s) { return { item: s, info: info }; });
+            }
+            return null;
+        }).then(function (ctx) {
+            if (!ctx || page.__rmId !== id) { return; }
+            var tmdb = ctx.item.ProviderIds && (ctx.item.ProviderIds.Tmdb || ctx.item.ProviderIds.tmdb);
+            if (!tmdb) { return; }
+            var mediaType = ctx.item.Type === 'Series' ? 'tv' : 'movie';
+            buildPanel(page, mediaType, parseInt(tmdb, 10), ctx.info);
+        }).catch(function () { /* l’interface native reste intacte en cas d’erreur */ });
+    }
+
+    function buildPanel(page, mediaType, tmdbId, info) {
+        var old = page.querySelector('.rm-panel');
+        if (old) { old.remove(); }
+        var panel = el('div', { class: 'rm-panel' });
+        var host = page.querySelector('.detailPagePrimaryContainer') || page.querySelector('.detailPageContent') || page;
+        host.appendChild(panel);
+        refreshPanel(panel, mediaType, tmdbId, info);
+    }
+
+    function refreshPanel(panel, mediaType, tmdbId, info) {
+        call('GET', 'State', { mediaType: mediaType, tmdbId: tmdbId }).then(function (st) {
+            panel.textContent = '';
+            var head = el('div', { class: 'rm-actions' }, [badge(st.state, st.stateLabel)]);
+            st.qualities.slice(1).forEach(function (q) {
+                if (q.state !== 'none') { head.appendChild(el('span', { class: 'rm-note', text: q.label + ' : ' + q.stateLabel })); }
+            });
+            panel.appendChild(head);
+
+            if (!st.seerrAvailable) {
+                panel.appendChild(el('div', { class: 'rm-note', text: 'Les demandes sont momentanément indisponibles.' }));
+            } else if (!st.requestsAllowed && st.blockedReason) {
+                panel.appendChild(el('div', { class: 'rm-note', text: st.blockedReason }));
+            } else {
+                var requestable = st.qualities.filter(function (q) { return q.canRequest; });
+                if (requestable.length) { panel.appendChild(requestControls(panel, st, requestable, mediaType, tmdbId, info)); }
+            }
+            panel.appendChild(reportControls(mediaType, tmdbId, info));
+        }, function () { panel.remove(); });
+    }
+
+    function requestControls(panel, st, requestable, mediaType, tmdbId, info) {
+        var wrap = el('div', {});
+        var actions = el('div', { class: 'rm-actions' });
+        var select = qualitySelect(st.qualities, function (q) { return q.canRequest; });
+        if (requestable.length > 1) { actions.appendChild(select); }
+        var btn = el('button', {
+            class: 'rm-btn', type: 'button',
+            text: mediaType === 'tv' ? 'Choisir les saisons' : 'Demander',
+            onclick: function () {
+                var quality = requestable.length > 1 ? select.value : requestable[0].id;
+                if (mediaType === 'tv') {
+                    var box = wrap.querySelector('.rm-seasons-box');
+                    if (box) { box.remove(); return; }
+                    box = el('div', { class: 'rm-seasons-box' });
+                    wrap.appendChild(box);
+                    renderSeasonPicker(box, mediaType, tmdbId, quality);
+                } else {
+                    sendRequest(wrap, btn, { mediaType: mediaType, tmdbId: tmdbId, quality: quality }, function () {
+                        setTimeout(function () { refreshPanel(panel, mediaType, tmdbId, info); }, 1200);
+                    });
+                }
+            }
+        });
+        actions.appendChild(btn);
+        wrap.appendChild(actions);
+        return wrap;
+    }
+
+    function reportControls(mediaType, tmdbId, info) {
+        var wrap = el('div', { class: 'rm-report' });
+        var toggle = el('button', {
+            class: 'rm-btn secondary', type: 'button', text: 'Signaler un problème',
+            onclick: function () {
+                var f = wrap.querySelector('.rm-form');
+                if (f) { f.remove(); return; }
+                wrap.appendChild(reportForm(mediaType, tmdbId, info));
+            }
+        });
+        wrap.style.marginTop = '.8em';
+        wrap.appendChild(toggle);
+        return wrap;
+    }
+
+    function reportForm(mediaType, tmdbId, info) {
+        var form = el('div', { class: 'rm-form' });
+        var cat = el('select', { class: 'rm-select', 'aria-label': 'Type de problème' });
+        REPORT_CATEGORIES.forEach(function (c) { cat.appendChild(el('option', { value: c[0], text: c[1] })); });
+        form.appendChild(cat);
+
+        var season = null, episode = null;
+        if (mediaType === 'tv') {
+            season = el('input', { class: 'rm-input', type: 'number', min: '1', placeholder: 'Saison (facultatif)' });
+            episode = el('input', { class: 'rm-input', type: 'number', min: '1', placeholder: 'Épisode (facultatif)' });
+            if (info && info.season) { season.value = info.season; }
+            if (info && info.episode) { episode.value = info.episode; }
+            form.appendChild(season);
+            form.appendChild(episode);
+        }
+
+        var comment = el('textarea', { class: 'rm-input', rows: '3', maxlength: '1000', placeholder: 'Commentaire (facultatif)' });
+        form.appendChild(comment);
+        var send = el('button', {
+            class: 'rm-btn', type: 'button', text: 'Envoyer',
+            onclick: function () {
+                send.disabled = true;
+                call('POST', 'Report', null, {
+                    mediaType: mediaType,
+                    tmdbId: tmdbId,
+                    category: cat.value,
+                    season: season && season.value ? parseInt(season.value, 10) : null,
+                    episode: episode && episode.value ? parseInt(episode.value, 10) : null,
+                    comment: comment.value
+                }).then(function (r) { setMsg(form, r.message, false); }, function (e) {
+                    errorMessage(e).then(function (m) { setMsg(form, m, true); send.disabled = false; });
+                });
+            }
+        });
+        form.appendChild(send);
+        return form;
+    }
+
+    // ------------------------------------------------------------------ démarrage
+
+    var tick = debounce(function () {
+        if (!window.ApiClient || !ApiClient.accessToken || !ApiClient.accessToken()) { return; }
+        try { ensureSearch(); ensureDetails(); } catch (e) { /* ne jamais casser l’interface native */ }
+    }, 250);
+
+    function start() {
+        injectStyle();
+        new MutationObserver(tick).observe(document.body, { childList: true, subtree: true });
+        window.addEventListener('hashchange', tick);
+        document.addEventListener('viewshow', tick);
+        tick();
+    }
+
+    if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', start); }
+    else { start(); }
+})();

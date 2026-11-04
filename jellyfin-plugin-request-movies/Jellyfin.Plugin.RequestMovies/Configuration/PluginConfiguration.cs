@@ -5,6 +5,9 @@ namespace Jellyfin.Plugin.RequestMovies.Configuration;
 /// <summary>Configuration persistée du plugin. Seul un administrateur peut la lire ou l'écrire.</summary>
 public class PluginConfiguration : BasePluginConfiguration
 {
+    /// <summary>Utiliser uniquement une liste de demandes textuelles, sans appeler Seerr ni TMDB.</summary>
+    public bool TextOnlyMode { get; set; }
+
     // --- Seerr ---
     public string SeerrUrl { get; set; } = string.Empty;
 

@@ -41,7 +41,9 @@ public class SeerrClient
         get
         {
             var c = Plugin.Instance?.Configuration;
-            return c is not null && !string.IsNullOrWhiteSpace(c.SeerrUrl) && !string.IsNullOrWhiteSpace(c.SeerrApiKey);
+            return c is not null && !c.TextOnlyMode
+                && !string.IsNullOrWhiteSpace(c.SeerrUrl)
+                && !string.IsNullOrWhiteSpace(c.SeerrApiKey);
         }
     }
 

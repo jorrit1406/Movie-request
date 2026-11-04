@@ -5,7 +5,7 @@
 set -euo pipefail
 
 INDEX="${1:-/usr/share/jellyfin/web/index.html}"
-TAG='<script plugin="RequestMovies" src="/RequestMovies/client.js?v=1.2.3" defer></script>'
+TAG='<script plugin="RequestMovies" src="/RequestMovies/client.js?v=1.2.6" defer></script>'
 
 if [ "${1:-}" = "--remove" ] || [ "${2:-}" = "--remove" ]; then
   [ "${1:-}" = "--remove" ] && INDEX="/usr/share/jellyfin/web/index.html"

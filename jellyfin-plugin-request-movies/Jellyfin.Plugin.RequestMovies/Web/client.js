@@ -164,7 +164,7 @@
         return textPage;
     }
 
-    function renderTextRequests(list, doneList, requests) {
+    function renderTextRequests(list, doneList, requests, isAdmin) {
         list.textContent = '';
         doneList.textContent = '';
         var activeRequests = requests.filter(function (request) { return !request.isDone; });
@@ -176,7 +176,6 @@
             doneList.appendChild(el('p', { class: 'rm-note', text: 'No completed requests yet.' }));
         }
 
-        var isAdmin = ApiClient.isCurrentUserAdministrator && ApiClient.isCurrentUserAdministrator();
         activeRequests.forEach(function (request) {
             var entry = el('article', { class: 'rm-text-entry' });
             entry.appendChild(el('div', { class: 'rm-text-entry-title', text: request.title }));
@@ -267,7 +266,19 @@
         list.textContent = 'Loading list...';
         doneList.textContent = '';
         call('GET', 'TextRequests').then(function (requests) {
-            renderTextRequests(list, doneList, requests);
+            ApiClient.getCurrentUser().then(function (user) {
+                var isAdmin = user && user.Policy && user.Policy.IsAdministrator === true;
+                renderTextRequests(list, doneList, requests, isAdmin);
+            }, function (error) {
+                renderTextRequests(list, doneList, requests, false);
+                list.appendChild(el('p', {
+                    class: 'rm-note err',
+                    text: 'Could not verify administrator permissions. Administrative actions are unavailable.'
+                }));
+                errorMessage(error).then(function (message) {
+                    list.appendChild(el('p', { class: 'rm-note err', text: message }));
+                });
+            });
         }, function (error) {
             list.textContent = '';
             list.appendChild(el('p', { class: 'rm-note err', text: 'Could not load the list.' }));

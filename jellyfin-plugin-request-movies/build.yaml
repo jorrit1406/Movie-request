@@ -1,7 +1,7 @@
 ---
 name: "Request Movies"
 guid: "6f1d3c52-8a7b-4e0d-9b2a-5c4e7d91a3f8"
-version: "1.2.3.0"
+version: "1.2.6.0"
 targetAbi: "12.4.0"
 framework: "net10.0"
 owner: "JorritRomijn"

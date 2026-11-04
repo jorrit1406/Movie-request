@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.6
+- Detect Jellyfin administrators using the current user's policy so list management controls appear correctly.
+
 ## 1.2.3
 - Prevent Jellyfin Web from reusing a stale client script that omits shared-list voting controls.
 - Update an existing web loader to use a versioned client-script URL.

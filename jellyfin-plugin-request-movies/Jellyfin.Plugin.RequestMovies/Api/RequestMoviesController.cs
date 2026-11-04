@@ -74,12 +74,13 @@ public class RequestMoviesController : ControllerBase
     [Authorize]
     public ActionResult GetTextRequests()
     {
-        if (!TextOnlyMode)
+        var userId = CurrentUserId();
+        if (userId is null)
         {
-            return Conflict(new { message = "Text-only mode is not enabled." });
+            return Unauthorized();
         }
 
-        return Ok(_textRequests.GetAll());
+        return Ok(_textRequests.GetAll(userId.Value));
     }
 
     [HttpPost("TextRequests")]
@@ -90,11 +91,6 @@ public class RequestMoviesController : ControllerBase
         if (userId is null)
         {
             return Unauthorized();
-        }
-
-        if (!TextOnlyMode)
-        {
-            return Conflict(new { message = "Text-only mode is not enabled." });
         }
 
         var title = (body.Title ?? string.Empty).Trim();
@@ -113,15 +109,29 @@ public class RequestMoviesController : ControllerBase
         return Ok(_textRequests.Add(title, notes, username));
     }
 
+    [HttpPost("TextRequests/{id:guid}/Vote")]
+    [Authorize]
+    public ActionResult VoteTextRequest(Guid id)
+    {
+        var userId = CurrentUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
+
+        if (!_limiter.TryAcquire($"text-vote:{userId}", 30, TimeSpan.FromMinutes(1)))
+        {
+            return StatusCode(StatusCodes.Status429TooManyRequests, new { message = "Too many votes. Please wait a moment." });
+        }
+
+        var request = _textRequests.ToggleVote(id, userId.Value);
+        return request is null ? NotFound() : Ok(request);
+    }
+
     [HttpDelete("TextRequests/{id:guid}")]
     [Authorize(Policy = "RequiresElevation")]
     public ActionResult DeleteTextRequest(Guid id)
     {
-        if (!TextOnlyMode)
-        {
-            return Conflict(new { message = "Text-only mode is not enabled." });
-        }
-
         return _textRequests.Delete(id) ? Ok(new { ok = true }) : NotFound();
     }
 

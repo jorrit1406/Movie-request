@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.2
+- Make the shared request list available from Jellyfin's side menu, regardless of text-only mode.
+- Let each signed-in user cast or remove one vote per title; sort the list by vote count.
+- Preserve existing list entries and votes in the plugin's server-side data file.
+- Translate remaining user-facing errors and Seerr messages to English.
+
 ## 1.2.1
 - Show the shared request-list item in Jellyfin's side menu for every signed-in user.
 - Display a clear message when text-only mode has not been enabled.

@@ -90,6 +90,8 @@
             '.rm-text-entry{padding:1em;margin:.75em 0;border-radius:.5em;background:rgba(127,127,127,.15)}',
             '.rm-text-entry-title{font-size:1.15em;font-weight:600}',
             '.rm-text-entry-meta{opacity:.7;font-size:.9em;margin-top:.5em}',
+            '.rm-text-entry-actions{display:flex;align-items:center;gap:.6em;margin-top:.6em}',
+            '.rm-text-vote-count{min-width:5em}',
             '.rm-text-form{max-width:none;padding:1em 0}',
             '.rm-text-nav .navMenuOptionText{display:inline}'
         ].join('');
@@ -173,8 +175,30 @@
             var date = new Date(request.createdAtUtc);
             var metadata = request.requestedBy + ' · ' + (isNaN(date.getTime()) ? '' : date.toLocaleString());
             entry.appendChild(el('div', { class: 'rm-text-entry-meta', text: metadata }));
+            var actions = el('div', { class: 'rm-text-entry-actions' });
+            var voteCount = el('span', {
+                class: 'rm-text-vote-count',
+                text: request.voteCount + (request.voteCount === 1 ? ' vote' : ' votes')
+            });
+            var vote = el('button', {
+                class: 'rm-btn' + (request.hasVoted ? ' secondary' : ''),
+                type: 'button',
+                text: request.hasVoted ? 'Remove my vote' : 'Vote',
+                'aria-pressed': request.hasVoted ? 'true' : 'false',
+                onclick: function () {
+                    vote.disabled = true;
+                    call('POST', 'TextRequests/' + encodeURIComponent(request.id) + '/Vote').then(function () {
+                        loadTextRequests(list);
+                    }, function (error) {
+                        errorMessage(error).then(function (message) { setMsg(entry, message, true); });
+                        vote.disabled = false;
+                    });
+                }
+            });
+            actions.appendChild(vote);
+            actions.appendChild(voteCount);
             if (isAdmin) {
-                entry.appendChild(el('button', {
+                actions.appendChild(el('button', {
                     class: 'rm-btn secondary', type: 'button', text: 'Remove',
                     onclick: function () {
                         call('DELETE', 'TextRequests/' + encodeURIComponent(request.id)).then(function () {
@@ -185,6 +209,7 @@
                     }
                 }));
             }
+            entry.appendChild(actions);
             list.appendChild(entry);
         });
     }
@@ -209,23 +234,9 @@
         var form = page.querySelector('.rm-text-form');
         var list = page.querySelector('.rm-text-list');
         status.hidden = false;
-        status.textContent = 'Checking plugin settings…';
-        form.hidden = true;
-        list.textContent = '';
-        call('GET', 'Mode').then(function (mode) {
-            if (!mode.textOnlyMode) {
-                status.textContent = 'Text-only mode is turned off. Ask a Jellyfin administrator to enable it in the Request Movies plugin settings.';
-                return;
-            }
-            status.hidden = true;
-            form.hidden = false;
-            loadTextRequests(list);
-        }, function (error) {
-            status.textContent = '';
-            errorMessage(error).then(function (message) {
-                status.textContent = 'Could not check the plugin settings: ' + message;
-            });
-        });
+        status.hidden = true;
+        form.hidden = false;
+        loadTextRequests(list);
     }
 
     function ensureTextNavigation() {

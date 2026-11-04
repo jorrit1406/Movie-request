@@ -158,6 +158,10 @@ public sealed class TextRequestDto
     [JsonPropertyName("requestedBy")] public string RequestedBy { get; set; } = string.Empty;
 
     [JsonPropertyName("createdAtUtc")] public DateTime CreatedAtUtc { get; set; }
+
+    [JsonPropertyName("voteCount")] public int VoteCount { get; set; }
+
+    [JsonPropertyName("hasVoted")] public bool HasVoted { get; set; }
 }
 
 public sealed class CreateTextRequestBody

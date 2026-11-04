@@ -8,6 +8,22 @@
     "category": "General",
     "versions": [
       {
+        "version": "1.2.3.0",
+        "changelog": "Version 1.2.3.0",
+        "targetAbi": "12.4.0",
+        "sourceUrl": "https://github.com/jorrit1406/Movie-request/releases/download/v1.2.3/request-movies_12.4_1.2.3.zip",
+        "checksum": "3dab1c55760009c1fd265e0590260c23",
+        "timestamp": "2026-11-04T09:29:19Z"
+      },
+      {
+        "version": "1.2.3.0",
+        "changelog": "Version 1.2.3.0",
+        "targetAbi": "10.11.0",
+        "sourceUrl": "https://github.com/jorrit1406/Movie-request/releases/download/v1.2.3/request-movies_10.11_1.2.3.zip",
+        "checksum": "c762d8c1c2ebd0781eaf28c98258fbe7",
+        "timestamp": "2026-11-04T09:29:19Z"
+      },
+      {
         "version": "1.2.2.0",
         "changelog": "Version 1.2.2.0",
         "targetAbi": "12.4.0",

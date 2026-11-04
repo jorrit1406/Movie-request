@@ -35,7 +35,7 @@ Pour une installation Linux par paquet, depuis le dossier du dépôt :
 sudo bash scripts/install-web-loader.sh /usr/share/jellyfin/web/index.html
 ```
 
-Pour Docker, le script doit être exécuté dans le conteneur ou sur le fichier `index.html` correspondant au chemin monté par Jellyfin Web. Une mise à jour de Jellyfin peut remplacer ce fichier ; dans ce cas, réinstallez le chargeur. Après l’installation du chargeur ou un changement de mode, rechargez Jellyfin Web (Ctrl+F5).
+Pour Docker, le script doit être exécuté dans le conteneur ou sur le fichier `index.html` correspondant au chemin monté par Jellyfin Web. Relancez-le après une mise à jour du plugin : il mettra à jour le chargeur existant vers l’URL versionnée du script client. Une mise à jour de Jellyfin peut remplacer `index.html` ; dans ce cas, réinstallez le chargeur. Après la mise à jour, rechargez Jellyfin Web (Ctrl+F5).
 
 In the plugin settings, enable **Disable Seerr and TMDB integration (text-only mode)** if you want to use only the shared text list. The list remains available either way. Entries and votes are stored in the Jellyfin plugin data directory.
 

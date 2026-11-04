@@ -258,7 +258,7 @@ public class RequestMoviesController : ControllerBase
         }
 
         using var reader = new StreamReader(stream, Encoding.UTF8);
-        Response.Headers["Cache-Control"] = "public, max-age=300";
+        Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
         return Content(reader.ReadToEnd(), "text/javascript", Encoding.UTF8);
     }
 

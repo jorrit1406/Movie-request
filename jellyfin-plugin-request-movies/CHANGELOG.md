@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.3
+- Prevent Jellyfin Web from reusing a stale client script that omits shared-list voting controls.
+- Update an existing web loader to use a versioned client-script URL.
+
 ## 1.2.2
 - Make the shared request list available from Jellyfin's side menu, regardless of text-only mode.
 - Let each signed-in user cast or remove one vote per title; sort the list by vote count.

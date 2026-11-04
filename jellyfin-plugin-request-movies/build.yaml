@@ -1,15 +1,14 @@
 ---
 name: "Request Movies"
 guid: "6f1d3c52-8a7b-4e0d-9b2a-5c4e7d91a3f8"
-version: "1.2.0.0"
+version: "1.2.1.0"
 targetAbi: "12.4.0"
 framework: "net10.0"
 owner: "JorritRomijn"
-overview: "Liste textuelle partagée sans service externe, ou demandes de films et séries via Seerr dans Jellyfin."
+overview: "Shared text-only request list without external services, or movie and TV requests through Seerr in Jellyfin."
 description: >
-  Mode liste textuelle partagée sans appel à Seerr ou TMDB, ou intégration Seerr :
-  résultats « disponible à la demande », demandes avec choix de qualité, statuts,
-  détection de disponibilité réelle et signalement de problèmes.
+  Shared text-only list without Seerr or TMDB, or Seerr integration with on-demand
+  search, quality options, request status, availability tracking, and issue reporting.
 category: "General"
 artifacts:
   - "Jellyfin.Plugin.RequestMovies.dll"

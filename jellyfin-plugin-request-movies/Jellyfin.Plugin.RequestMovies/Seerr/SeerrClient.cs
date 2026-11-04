@@ -50,10 +50,10 @@ public class SeerrClient
     private HttpClient CreateClient()
     {
         var config = Plugin.Instance?.Configuration
-            ?? throw new SeerrUnavailableException("Plugin non initialisé.");
+            ?? throw new SeerrUnavailableException("The plugin is not initialized.");
         if (!IsConfigured)
         {
-            throw new SeerrUnavailableException("Seerr n’est pas configuré.");
+            throw new SeerrUnavailableException("Seerr is not configured.");
         }
 
         var client = _httpClientFactory.CreateClient("RequestMovies.Seerr");
@@ -91,7 +91,7 @@ public class SeerrClient
             }
 
             // Le message ne contient jamais la clé API (elle est dans un en-tête, pas dans l'URL).
-            throw new SeerrUnavailableException("Seerr est momentanément indisponible.", ex);
+            throw new SeerrUnavailableException("Seerr is temporarily unavailable.", ex);
         }
     }
 

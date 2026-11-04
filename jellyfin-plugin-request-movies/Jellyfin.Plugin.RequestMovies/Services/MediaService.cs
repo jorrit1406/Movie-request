@@ -23,16 +23,16 @@ public sealed class MediaService
 {
     private static readonly Dictionary<string, (string Label, int SeerrType)> ReportCategories = new()
     {
-        ["playback"] = ("Erreur de lecture", 1),
-        ["nosound"] = ("Absence de son", 2),
-        ["avproblem"] = ("Problème audio/vidéo", 1),
-        ["subtitles"] = ("Sous-titres absents ou incorrects", 3),
-        ["quality"] = ("Mauvaise qualité", 1),
-        ["wrongversion"] = ("Mauvaise version du contenu", 4),
-        ["wronglanguage"] = ("Langue incorrecte", 2),
-        ["wrongitem"] = ("Film ou épisode incorrect", 4),
-        ["incomplete"] = ("Contenu incomplet", 4),
-        ["other"] = ("Autre problème", 4)
+        ["playback"] = ("Playback error", 1),
+        ["nosound"] = ("No sound", 2),
+        ["avproblem"] = ("Audio/video problem", 1),
+        ["subtitles"] = ("Missing or incorrect subtitles", 3),
+        ["quality"] = ("Poor quality", 1),
+        ["wrongversion"] = ("Wrong version", 4),
+        ["wronglanguage"] = ("Wrong language", 2),
+        ["wrongitem"] = ("Wrong movie or episode", 4),
+        ["incomplete"] = ("Incomplete content", 4),
+        ["other"] = ("Other", 4)
     };
 
     private readonly SeerrClient _seerr;
@@ -68,12 +68,12 @@ public sealed class MediaService
         var cfg = Cfg;
         if (!_seerr.IsConfigured)
         {
-            return (false, "Les demandes ne sont pas configurées.");
+            return (false, "Requests are not configured.");
         }
 
         if (cfg.RequestsSuspended)
         {
-            return (false, "Les nouvelles demandes sont temporairement suspendues.");
+            return (false, "New requests are temporarily suspended.");
         }
 
         if (userId is { } id)
@@ -81,7 +81,7 @@ public sealed class MediaService
             var n = UserMapper.Normalize(id.ToString("N"));
             if (cfg.DisabledUserIds.Any(d => UserMapper.Normalize(d) == n))
             {
-                return (false, "Les demandes sont désactivées pour votre compte.");
+                return (false, "Requests are disabled for your account.");
             }
         }
 
@@ -120,7 +120,7 @@ public sealed class MediaService
 
                 if (!r.IsSuccess)
                 {
-                    throw new SeerrUnavailableException($"Seerr a répondu HTTP {r.StatusCode}.");
+                    throw new SeerrUnavailableException($"Seerr returned HTTP {r.StatusCode}.");
                 }
 
                 return r.Body;
@@ -303,7 +303,7 @@ public sealed class MediaService
                     var r = await _seerr.SearchAsync(query, page, CancellationToken.None).ConfigureAwait(false);
                     if (!r.IsSuccess)
                     {
-                        throw new SeerrUnavailableException($"Seerr a répondu HTTP {r.StatusCode}.");
+                        throw new SeerrUnavailableException($"Seerr returned HTTP {r.StatusCode}.");
                     }
 
                     return r.Body;
@@ -395,18 +395,18 @@ public sealed class MediaService
         var (allowed, reason) = Permission(userId);
         if (!allowed)
         {
-            return Fail(403, reason ?? "Demandes non autorisées.");
+            return Fail(403, reason ?? "Requests are not allowed.");
         }
 
         if (!IsValidMediaType(body.MediaType) || body.TmdbId <= 0)
         {
-            return Fail(400, "Média invalide.");
+            return Fail(400, "Invalid media.");
         }
 
         var quality = Qualities().FirstOrDefault(q => q.Id == body.Quality);
         if (quality is null)
         {
-            return Fail(400, "Qualité non proposée.");
+            return Fail(400, "Quality option is not available.");
         }
 
         _details.Remove($"{body.MediaType}:{body.TmdbId}");
@@ -417,20 +417,20 @@ public sealed class MediaService
         }
         catch (SeerrUnavailableException)
         {
-            return Fail(502, "Seerr est momentanément indisponible.");
+            return Fail(502, "Seerr is temporarily unavailable.");
         }
 
         if (!state.SeerrAvailable)
         {
-            return Fail(502, "Seerr est momentanément indisponible.");
+            return Fail(502, "Seerr is temporarily unavailable.");
         }
 
         var qs = state.Qualities.First(q => q.Id == quality.Id);
         if (!qs.CanRequest)
         {
             return Fail(409, qs.State == "available"
-                ? "Ce contenu est déjà disponible dans cette qualité."
-                : "Ce contenu est déjà demandé ou en cours de traitement.");
+                ? "This content is already available in this quality."
+                : "This content has already been requested or is being processed.");
         }
 
         List<int>? seasons = null;
@@ -440,14 +440,14 @@ public sealed class MediaService
             seasons = body.Seasons is { Count: > 0 } ? body.Seasons.Where(requestable.Contains).Distinct().ToList() : requestable;
             if (seasons.Count == 0)
             {
-                return Fail(409, "Aucune saison à demander : elles sont déjà disponibles ou demandées.");
+                return Fail(409, "There are no seasons to request; all are already available or requested.");
             }
         }
 
         var seerrUser = await _mapper.GetSeerrUserIdAsync(userId, Cfg.AutoImportUsers, ct).ConfigureAwait(false);
         if (seerrUser is null)
         {
-            return Fail(403, "Votre compte n’existe pas dans Seerr. Demandez à un administrateur d’importer les utilisateurs Jellyfin.");
+            return Fail(403, "Your account does not exist in Seerr. Ask an administrator to import Jellyfin users.");
         }
 
         var cfg = Cfg;
@@ -466,7 +466,7 @@ public sealed class MediaService
         }
         catch (SeerrUnavailableException)
         {
-            return Fail(502, "Seerr est momentanément indisponible.");
+            return Fail(502, "Seerr is temporarily unavailable.");
         }
 
         _details.Remove($"{body.MediaType}:{body.TmdbId}");
@@ -474,16 +474,16 @@ public sealed class MediaService
         {
             case 200:
             case 201:
-                return new ActionOutcome { Ok = true, Message = "Demande envoyée.", HttpStatus = 200 };
+                return new ActionOutcome { Ok = true, Message = "Request submitted.", HttpStatus = 200 };
             case 202:
-                return Fail(409, "Rien à demander : tout est déjà demandé ou disponible.");
+                return Fail(409, "Nothing to request; everything has already been requested or is available.");
             case 403:
-                return Fail(403, "Seerr a refusé la demande (quota atteint ou permission insuffisante)" + Suffix(resp.Body));
+                return Fail(403, "Seerr declined the request (quota reached or insufficient permission)" + Suffix(resp.Body));
             case 409:
-                return Fail(409, "Ce contenu est déjà demandé.");
+                return Fail(409, "This content has already been requested.");
             default:
-                _logger.LogWarning("RequestMovies : Seerr a répondu HTTP {Status} à la demande.", resp.StatusCode);
-                return Fail(502, $"Seerr a répondu HTTP {resp.StatusCode}.");
+                _logger.LogWarning("RequestMovies: Seerr returned HTTP {Status} for the request.", resp.StatusCode);
+                return Fail(502, $"Seerr returned HTTP {resp.StatusCode}.");
         }
     }
 
@@ -493,17 +493,17 @@ public sealed class MediaService
     {
         if (!_seerr.IsConfigured)
         {
-            return Fail(503, "Les signalements ne sont pas configurés.");
+            return Fail(503, "Reports are not configured.");
         }
 
         if (!IsValidMediaType(body.MediaType) || body.TmdbId <= 0)
         {
-            return Fail(400, "Média invalide.");
+            return Fail(400, "Invalid media.");
         }
 
         if (!ReportCategories.TryGetValue(body.Category ?? string.Empty, out var cat))
         {
-            return Fail(400, "Catégorie de signalement inconnue.");
+            return Fail(400, "Unknown report category.");
         }
 
         int? mediaId;
@@ -512,7 +512,7 @@ public sealed class MediaService
             var json = await GetDetailsJsonAsync(body.MediaType, body.TmdbId, ct).ConfigureAwait(false);
             if (json is null)
             {
-                return Fail(404, "Ce média est inconnu de Seerr.");
+                return Fail(404, "This media is unknown to Seerr.");
             }
 
             using var doc = JsonDocument.Parse(json);
@@ -520,12 +520,12 @@ public sealed class MediaService
         }
         catch (SeerrUnavailableException)
         {
-            return Fail(502, "Seerr est momentanément indisponible.");
+            return Fail(502, "Seerr is temporarily unavailable.");
         }
 
         if (mediaId is null)
         {
-            return Fail(404, "Ce média n’est pas encore enregistré dans Seerr : le signalement est impossible pour le moment.");
+            return Fail(404, "This media is not registered in Seerr yet; reporting is not possible right now.");
         }
 
         var name = _users.GetUserById(userId)?.Username ?? "utilisateur Jellyfin";
@@ -533,10 +533,10 @@ public sealed class MediaService
         sb.Append('[').Append(cat.Label).Append(']');
         if (body.Season is > 0)
         {
-            sb.Append(" Saison ").Append(body.Season.Value.ToString(CultureInfo.InvariantCulture));
+            sb.Append(" Season ").Append(body.Season.Value.ToString(CultureInfo.InvariantCulture));
             if (body.Episode is > 0)
             {
-                sb.Append(", épisode ").Append(body.Episode.Value.ToString(CultureInfo.InvariantCulture));
+                sb.Append(", episode ").Append(body.Episode.Value.ToString(CultureInfo.InvariantCulture));
             }
         }
 
@@ -546,19 +546,19 @@ public sealed class MediaService
             sb.Append('\n').Append(comment);
         }
 
-        sb.Append("\n— signalé depuis Jellyfin par ").Append(name);
+        sb.Append("\n— reported from Jellyfin by ").Append(name);
 
         try
         {
             var resp = await _seerr.CreateIssueAsync(cat.SeerrType, sb.ToString(), mediaId.Value, body.Season, body.Episode, ct)
                 .ConfigureAwait(false);
             return resp.IsSuccess
-                ? new ActionOutcome { Ok = true, Message = "Merci, le signalement a été transmis." }
-                : Fail(502, $"Seerr a répondu HTTP {resp.StatusCode}.");
+                ? new ActionOutcome { Ok = true, Message = "Thank you. Your report has been submitted." }
+                : Fail(502, $"Seerr returned HTTP {resp.StatusCode}.");
         }
         catch (SeerrUnavailableException)
         {
-            return Fail(502, "Seerr est momentanément indisponible.");
+            return Fail(502, "Seerr is temporarily unavailable.");
         }
     }
 

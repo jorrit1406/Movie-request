@@ -8,20 +8,18 @@
     window.__requestMoviesLoaded = true;
 
     var BASE = 'RequestMovies';
-    var textOnlyMode = null;
-    var modeLoading = false;
     var textPage = null;
     var REPORT_CATEGORIES = [
-        ['playback', 'Erreur de lecture'],
-        ['nosound', 'Absence de son'],
-        ['avproblem', 'Problème audio/vidéo'],
-        ['subtitles', 'Sous-titres absents ou incorrects'],
-        ['quality', 'Mauvaise qualité'],
-        ['wrongversion', 'Mauvaise version du contenu'],
-        ['wronglanguage', 'Langue incorrecte'],
-        ['wrongitem', 'Film ou épisode incorrect'],
-        ['incomplete', 'Contenu incomplet'],
-        ['other', 'Autre problème']
+        ['playback', 'Playback error'],
+        ['nosound', 'No sound'],
+        ['avproblem', 'Audio/video problem'],
+        ['subtitles', 'Missing or incorrect subtitles'],
+        ['quality', 'Poor quality'],
+        ['wrongversion', 'Wrong version'],
+        ['wronglanguage', 'Wrong language'],
+        ['wrongitem', 'Wrong movie or episode'],
+        ['incomplete', 'Incomplete content'],
+        ['other', 'Other']
     ];
 
     // ------------------------------------------------------------------ utilitaires
@@ -41,7 +39,7 @@
                 return (j && (j.message || j.Message)) || 'Une erreur est survenue.';
             }, function () { return 'Une erreur est survenue.'; });
         }
-        return Promise.resolve('Une erreur est survenue.');
+        return Promise.resolve('An error occurred.');
     }
 
     function el(tag, attrs, children) {
@@ -101,7 +99,7 @@
     function badge(state, label) { return el('span', { class: 'rm-badge ' + state, text: label }); }
 
     function qualitySelect(qualities, predicate) {
-        var select = el('select', { class: 'rm-select', 'aria-label': 'Qualité' });
+        var select = el('select', { class: 'rm-select', 'aria-label': 'Quality' });
         qualities.forEach(function (q) {
             if (!predicate || predicate(q)) { select.appendChild(el('option', { value: q.id, text: q.label })); }
         });
@@ -120,19 +118,20 @@
         textPage = el('div', { class: 'rm-text-page', hidden: '' });
         var inner = el('div', { class: 'rm-text-page-inner' });
         var close = el('button', {
-            class: 'rm-btn secondary', type: 'button', text: 'Sluiten',
+            class: 'rm-btn secondary', type: 'button', text: 'Close',
             onclick: function () { textPage.hidden = true; }
         });
         inner.appendChild(el('div', { class: 'rm-text-header' }, [
-            el('h1', { text: 'Gedeelde aanvragenlijst' }),
+            el('h1', { text: 'Shared request list' }),
             close
         ]));
-        inner.appendChild(el('p', { class: 'rm-note', text: 'Voeg een titel toe aan de lijst. Iedereen met toegang tot Jellyfin kan deze lijst bekijken.' }));
+        inner.appendChild(el('p', { class: 'rm-note', text: 'Everyone with a Jellyfin account can view this shared list and add titles.' }));
+        var status = el('p', { class: 'rm-note rm-text-status', 'aria-live': 'polite' });
 
         var form = el('form', { class: 'rm-form rm-text-form' });
-        var title = el('input', { class: 'rm-input', type: 'text', maxlength: '120', required: 'required', placeholder: 'Titel' });
-        var notes = el('textarea', { class: 'rm-input', rows: '3', maxlength: '500', placeholder: 'Toelichting (optioneel)' });
-        var submit = el('button', { class: 'rm-btn', type: 'submit', text: 'Toevoegen' });
+        var title = el('input', { class: 'rm-input', type: 'text', maxlength: '120', required: 'required', placeholder: 'Title' });
+        var notes = el('textarea', { class: 'rm-input', rows: '3', maxlength: '500', placeholder: 'Notes (optional)' });
+        var submit = el('button', { class: 'rm-btn', type: 'submit', text: 'Add to list' });
         var list = el('div', { class: 'rm-text-list', 'aria-live': 'polite' });
         form.appendChild(title);
         form.appendChild(notes);
@@ -140,17 +139,18 @@
         form.addEventListener('submit', function (event) {
             event.preventDefault();
             var value = title.value.trim();
-            if (!value) { setMsg(form, 'Vul een titel in.', true); return; }
+            if (!value) { setMsg(form, 'Enter a title.', true); return; }
             submit.disabled = true;
             call('POST', 'TextRequests', null, { title: value, notes: notes.value.trim() }).then(function () {
                 title.value = '';
                 notes.value = '';
-                setMsg(form, 'Toegevoegd aan de lijst.', false);
+                setMsg(form, 'Added to the list.', false);
                 loadTextRequests(list);
             }, function (error) {
                 errorMessage(error).then(function (message) { setMsg(form, message, true); });
             }).then(function () { submit.disabled = false; }, function () { submit.disabled = false; });
         });
+        inner.appendChild(status);
         inner.appendChild(form);
         inner.appendChild(list);
         textPage.appendChild(inner);
@@ -161,7 +161,7 @@
     function renderTextRequests(list, requests) {
         list.textContent = '';
         if (!requests.length) {
-            list.appendChild(el('p', { class: 'rm-note', text: 'De lijst is nog leeg.' }));
+            list.appendChild(el('p', { class: 'rm-note', text: 'The list is empty.' }));
             return;
         }
 
@@ -175,7 +175,7 @@
             entry.appendChild(el('div', { class: 'rm-text-entry-meta', text: metadata }));
             if (isAdmin) {
                 entry.appendChild(el('button', {
-                    class: 'rm-btn secondary', type: 'button', text: 'Verwijderen',
+                    class: 'rm-btn secondary', type: 'button', text: 'Remove',
                     onclick: function () {
                         call('DELETE', 'TextRequests/' + encodeURIComponent(request.id)).then(function () {
                             loadTextRequests(list);
@@ -190,12 +190,12 @@
     }
 
     function loadTextRequests(list) {
-        list.textContent = 'Lijst laden…';
+        list.textContent = 'Loading list…';
         call('GET', 'TextRequests').then(function (requests) {
             renderTextRequests(list, requests);
         }, function (error) {
             list.textContent = '';
-            list.appendChild(el('p', { class: 'rm-note err', text: 'De lijst kon niet worden geladen.' }));
+            list.appendChild(el('p', { class: 'rm-note err', text: 'Could not load the list.' }));
             errorMessage(error).then(function (message) {
                 list.appendChild(el('p', { class: 'rm-note err', text: message }));
             });
@@ -205,7 +205,27 @@
     function showTextList() {
         var page = ensureTextPage();
         page.hidden = false;
-        loadTextRequests(page.querySelector('.rm-text-list'));
+        var status = page.querySelector('.rm-text-status');
+        var form = page.querySelector('.rm-text-form');
+        var list = page.querySelector('.rm-text-list');
+        status.hidden = false;
+        status.textContent = 'Checking plugin settings…';
+        form.hidden = true;
+        list.textContent = '';
+        call('GET', 'Mode').then(function (mode) {
+            if (!mode.textOnlyMode) {
+                status.textContent = 'Text-only mode is turned off. Ask a Jellyfin administrator to enable it in the Request Movies plugin settings.';
+                return;
+            }
+            status.hidden = true;
+            form.hidden = false;
+            loadTextRequests(list);
+        }, function (error) {
+            status.textContent = '';
+            errorMessage(error).then(function (message) {
+                status.textContent = 'Could not check the plugin settings: ' + message;
+            });
+        });
     }
 
     function ensureTextNavigation() {
@@ -218,16 +238,15 @@
         link.href = '#';
         link.dataset.rmNav = 'true';
         link.appendChild(el('span', { class: 'material-icons navMenuOptionIcon', text: 'playlist_add' }));
-        link.appendChild(el('span', { class: 'navMenuOptionText', text: 'Aanvragenlijst' }));
+        link.appendChild(el('span', { class: 'navMenuOptionText', text: 'Request list' }));
         link.addEventListener('click', function (event) {
             event.preventDefault();
-            event.stopPropagation();
             showTextList();
         });
         drawer.appendChild(link);
     }
 
-    // ------------------------------------------------------------------ recherche : « Disponible à la demande »
+    // ------------------------------------------------------------------ on-demand search
 
     var searchSeq = 0;
 
@@ -274,11 +293,11 @@
     function renderSearch(host, res) {
         host.textContent = '';
         if (!res.seerrAvailable) {
-            host.appendChild(el('p', { class: 'rm-note', text: 'Les résultats à la demande sont momentanément indisponibles.' }));
+            host.appendChild(el('p', { class: 'rm-note', text: 'On-demand results are temporarily unavailable.' }));
             return;
         }
         if (!res.results.length) { return; }
-        host.appendChild(el('h2', { text: 'Disponible à la demande' }));
+        host.appendChild(el('h2', { text: 'Available on demand' }));
         var grid = el('div', { class: 'rm-grid' });
         res.results.forEach(function (item) { grid.appendChild(renderCard(item, res)); });
         host.appendChild(grid);
@@ -293,7 +312,7 @@
 
     function renderCard(item, ctx) {
         var url = posterUrl(item.poster);
-        var meta = [item.mediaType === 'tv' ? 'Série' : 'Film', item.year].filter(Boolean).join(' · ');
+        var meta = [item.mediaType === 'tv' ? 'Series' : 'Movie', item.year].filter(Boolean).join(' · ');
         var card = el('div', { class: 'rm-card' }, [
             url ? el('img', { src: url, alt: '', loading: 'lazy' }) : el('div', { class: 'rm-noposter' }),
             el('div', { class: 'rm-title', text: item.title }),
@@ -306,7 +325,7 @@
             if (select) { actions.appendChild(select); }
             var btn = el('button', {
                 class: 'rm-btn', type: 'button',
-                text: item.mediaType === 'tv' ? 'Choisir les saisons' : 'Demander',
+                text: item.mediaType === 'tv' ? 'Choose seasons' : 'Request',
                 onclick: function () {
                     if (item.mediaType === 'tv') { openSeasons(card, item, select ? select.value : 'hd'); }
                     else { sendRequest(card, btn, { mediaType: 'movie', tmdbId: item.tmdbId, quality: select ? select.value : 'hd' }); }
@@ -321,7 +340,7 @@
     function sendRequest(container, btn, body, onDone) {
         btn.disabled = true;
         call('POST', 'Request', null, body).then(function (r) {
-            setMsg(container, r.message || 'Demande envoyée.', false);
+            setMsg(container, r.message || 'Request submitted.', false);
             if (onDone) { onDone(); }
         }, function (e) {
             errorMessage(e).then(function (m) { setMsg(container, m, true); btn.disabled = false; });
@@ -336,7 +355,7 @@
         renderSeasonPicker(box, item.mediaType, item.tmdbId, quality);
     }
 
-    // Sélecteur de saisons : sert aussi sur la fiche d’une série.
+    // The season picker is also used on series detail pages.
     function renderSeasonPicker(box, mediaType, tmdbId, quality) {
         box.textContent = 'Chargement…';
         call('GET', 'State', { mediaType: mediaType, tmdbId: tmdbId }).then(function (st) {
@@ -349,24 +368,24 @@
                 cb.disabled = !s.canRequest;
                 cb.checked = s.canRequest;
                 checks.push({ cb: cb, n: s.number });
-                var extra = s.episodes > 0 ? ' (' + s.episodes + (s.episodeCount ? '/' + s.episodeCount : '') + ' ép.)' : '';
-                list.appendChild(el('label', {}, [cb, el('span', { text: ' Saison ' + s.number + ' — ' + s.stateLabel + extra })]));
+                var extra = s.episodes > 0 ? ' (' + s.episodes + (s.episodeCount ? '/' + s.episodeCount : '') + ' episodes)' : '';
+                list.appendChild(el('label', {}, [cb, el('span', { text: ' Season ' + s.number + ' — ' + s.stateLabel + extra })]));
             });
             box.appendChild(list);
             var btn = el('button', {
-                class: 'rm-btn', type: 'button', text: 'Demander',
+                class: 'rm-btn', type: 'button', text: 'Request',
                 onclick: function () {
                     var seasons = checks.filter(function (c) { return c.cb.checked && !c.cb.disabled; }).map(function (c) { return c.n; });
-                    if (!seasons.length) { setMsg(box, 'Sélectionnez au moins une saison.', true); return; }
+                    if (!seasons.length) { setMsg(box, 'Select at least one season.', true); return; }
                     sendRequest(box, btn, { mediaType: mediaType, tmdbId: tmdbId, quality: q.id, seasons: seasons });
                 }
             });
             if (q.canRequest) { box.appendChild(btn); }
-            else { box.appendChild(el('div', { class: 'rm-note', text: st.blockedReason || 'Rien à demander pour cette qualité.' })); }
-        }, function () { box.textContent = 'Statut indisponible.'; });
+            else { box.appendChild(el('div', { class: 'rm-note', text: st.blockedReason || 'Nothing to request for this quality.' })); }
+        }, function () { box.textContent = 'Status unavailable.'; });
     }
 
-    // ------------------------------------------------------------------ fiche : statut, demande, signalement
+    // ------------------------------------------------------------------ details: status, requests, and reports
 
     function detailsId() {
         var m = /[?&]id=([0-9a-fA-F]+)/.exec(location.hash);
@@ -419,7 +438,7 @@
             panel.appendChild(head);
 
             if (!st.seerrAvailable) {
-                panel.appendChild(el('div', { class: 'rm-note', text: 'Les demandes sont momentanément indisponibles.' }));
+                panel.appendChild(el('div', { class: 'rm-note', text: 'Requests are temporarily unavailable.' }));
             } else if (!st.requestsAllowed && st.blockedReason) {
                 panel.appendChild(el('div', { class: 'rm-note', text: st.blockedReason }));
             } else {
@@ -437,7 +456,7 @@
         if (requestable.length > 1) { actions.appendChild(select); }
         var btn = el('button', {
             class: 'rm-btn', type: 'button',
-            text: mediaType === 'tv' ? 'Choisir les saisons' : 'Demander',
+            text: mediaType === 'tv' ? 'Choose seasons' : 'Request',
             onclick: function () {
                 var quality = requestable.length > 1 ? select.value : requestable[0].id;
                 if (mediaType === 'tv') {
@@ -461,7 +480,7 @@
     function reportControls(mediaType, tmdbId, info) {
         var wrap = el('div', { class: 'rm-report' });
         var toggle = el('button', {
-            class: 'rm-btn secondary', type: 'button', text: 'Signaler un problème',
+            class: 'rm-btn secondary', type: 'button', text: 'Report a problem',
             onclick: function () {
                 var f = wrap.querySelector('.rm-form');
                 if (f) { f.remove(); return; }
@@ -475,24 +494,24 @@
 
     function reportForm(mediaType, tmdbId, info) {
         var form = el('div', { class: 'rm-form' });
-        var cat = el('select', { class: 'rm-select', 'aria-label': 'Type de problème' });
+        var cat = el('select', { class: 'rm-select', 'aria-label': 'Problem type' });
         REPORT_CATEGORIES.forEach(function (c) { cat.appendChild(el('option', { value: c[0], text: c[1] })); });
         form.appendChild(cat);
 
         var season = null, episode = null;
         if (mediaType === 'tv') {
-            season = el('input', { class: 'rm-input', type: 'number', min: '1', placeholder: 'Saison (facultatif)' });
-            episode = el('input', { class: 'rm-input', type: 'number', min: '1', placeholder: 'Épisode (facultatif)' });
+            season = el('input', { class: 'rm-input', type: 'number', min: '1', placeholder: 'Season (optional)' });
+            episode = el('input', { class: 'rm-input', type: 'number', min: '1', placeholder: 'Episode (optional)' });
             if (info && info.season) { season.value = info.season; }
             if (info && info.episode) { episode.value = info.episode; }
             form.appendChild(season);
             form.appendChild(episode);
         }
 
-        var comment = el('textarea', { class: 'rm-input', rows: '3', maxlength: '1000', placeholder: 'Commentaire (facultatif)' });
+        var comment = el('textarea', { class: 'rm-input', rows: '3', maxlength: '1000', placeholder: 'Comment (optional)' });
         form.appendChild(comment);
         var send = el('button', {
-            class: 'rm-btn', type: 'button', text: 'Envoyer',
+            class: 'rm-btn', type: 'button', text: 'Submit',
             onclick: function () {
                 send.disabled = true;
                 call('POST', 'Report', null, {
@@ -515,23 +534,10 @@
 
     var tick = debounce(function () {
         if (!window.ApiClient || !ApiClient.accessToken || !ApiClient.accessToken()) { return; }
-        if (textOnlyMode === null) {
-            if (modeLoading) { return; }
-            modeLoading = true;
-            call('GET', 'Mode').then(function (mode) {
-                textOnlyMode = !!mode.textOnlyMode;
-                modeLoading = false;
-                tick();
-            }, function () {
-                textOnlyMode = false;
-                modeLoading = false;
-                tick();
-            });
-            return;
-        }
         try {
-            if (textOnlyMode) { ensureTextNavigation(); }
-            else { ensureSearch(); ensureDetails(); }
+            ensureTextNavigation();
+            ensureSearch();
+            ensureDetails();
         } catch (e) { /* ne jamais casser l’interface native */ }
     }, 250);
 

@@ -60,7 +60,7 @@ public sealed class AvailabilityService : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "RequestMovies : vérification déclenchée par webhook en échec.");
+            _logger.LogWarning(ex, "RequestMovies: webhook-triggered check failed.");
         }
     }
 
@@ -85,12 +85,12 @@ public sealed class AvailabilityService : IDisposable
     {
         if (!_seerr.IsConfigured)
         {
-            return "Seerr n’est pas configuré.";
+            return "Seerr is not configured.";
         }
 
         if (!await _gate.WaitAsync(0, ct).ConfigureAwait(false))
         {
-            return "Une vérification est déjà en cours.";
+            return "A check is already in progress.";
         }
 
         try
@@ -105,13 +105,13 @@ public sealed class AvailabilityService : IDisposable
             }
             catch (SeerrUnavailableException ex)
             {
-                _logger.LogWarning("RequestMovies : Seerr indisponible pendant la vérification ({Message}).", ex.Message);
-                return "Seerr indisponible.";
+                _logger.LogWarning("RequestMovies: Seerr unavailable during check ({Message}).", ex.Message);
+                return "Seerr is unavailable.";
             }
 
             if (!resp.IsSuccess)
             {
-                return $"Seerr a répondu HTTP {resp.StatusCode}.";
+                return $"Seerr returned HTTP {resp.StatusCode}.";
             }
 
             using (var doc = JsonDocument.Parse(resp.Body))
@@ -158,19 +158,19 @@ public sealed class AvailabilityService : IDisposable
             if (eligible.Count == 0)
             {
                 return candidates.Count == 0
-                    ? "Rien à rafraîchir."
-                    : $"{candidates.Count} média(s) en attente d’indexation ; limites atteintes, intervention manuelle possible.";
+                    ? "Nothing to refresh."
+                    : $"{candidates.Count} item(s) are awaiting indexing; limits reached, manual intervention may be needed.";
             }
 
             var minInterval = TimeSpan.FromMinutes(Math.Max(1, cfg.MinRefreshIntervalMinutes));
             if (!force && now - _lastRefreshUtc < minInterval)
             {
-                return "Rafraîchissement récent : en attente du prochain créneau.";
+                return "A recent refresh is still within the minimum interval.";
             }
 
             if (_library.RefreshRunning)
             {
-                return "Un rafraîchissement de la bibliothèque est déjà en cours.";
+                return "A library refresh is already in progress.";
             }
 
             _lastRefreshUtc = DateTime.UtcNow;
@@ -185,8 +185,8 @@ public sealed class AvailabilityService : IDisposable
             // Un seul rafraîchissement global pour tous les médias concernés.
             var started = await _library.RefreshAsync(ct).ConfigureAwait(false);
             return started
-                ? $"Rafraîchissement lancé pour {eligible.Count} média(s)."
-                : "Un rafraîchissement est déjà en cours.";
+                ? $"Library refresh started for {eligible.Count} item(s)."
+                : "A library refresh is already in progress.";
         }
         finally
         {

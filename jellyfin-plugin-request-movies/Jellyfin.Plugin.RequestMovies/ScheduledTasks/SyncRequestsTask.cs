@@ -17,11 +17,11 @@ public sealed class SyncRequestsTask : IScheduledTask
         _availability = availability;
     }
 
-    public string Name => "Vérifier la disponibilité des demandes";
+    public string Name => "Check request availability";
 
     public string Key => "RequestMoviesSync";
 
-    public string Description => "Détecte les médias importés mais non indexés et rafraîchit la bibliothèque de façon contrôlée.";
+    public string Description => "Detects imported media that is not yet indexed and triggers a controlled library refresh.";
 
     public string Category => "Request Movies";
 

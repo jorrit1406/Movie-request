@@ -76,7 +76,7 @@ public class RequestMoviesController : ControllerBase
     {
         if (!TextOnlyMode)
         {
-            return Conflict(new { message = "La liste textuelle n’est pas activée." });
+            return Conflict(new { message = "Text-only mode is not enabled." });
         }
 
         return Ok(_textRequests.GetAll());
@@ -94,19 +94,19 @@ public class RequestMoviesController : ControllerBase
 
         if (!TextOnlyMode)
         {
-            return Conflict(new { message = "La liste textuelle n’est pas activée." });
+            return Conflict(new { message = "Text-only mode is not enabled." });
         }
 
         var title = (body.Title ?? string.Empty).Trim();
         var notes = (body.Notes ?? string.Empty).Trim();
         if (title.Length is < 1 or > 120 || notes.Length > 500)
         {
-            return BadRequest(new { message = "Le titre doit faire 1 à 120 caractères et les notes au maximum 500 caractères." });
+            return BadRequest(new { message = "The title must be 1 to 120 characters and notes must be 500 characters or fewer." });
         }
 
         if (!_limiter.TryAcquire($"text-request:{userId}", 5, TimeSpan.FromMinutes(1)))
         {
-            return StatusCode(StatusCodes.Status429TooManyRequests, new { message = "Trop de demandes, patientez un instant." });
+            return StatusCode(StatusCodes.Status429TooManyRequests, new { message = "Too many requests. Please wait a moment." });
         }
 
         var username = _users.GetUserById(userId.Value)?.Username ?? "Jellyfin";
@@ -119,7 +119,7 @@ public class RequestMoviesController : ControllerBase
     {
         if (!TextOnlyMode)
         {
-            return Conflict(new { message = "La liste textuelle n’est pas activée." });
+            return Conflict(new { message = "Text-only mode is not enabled." });
         }
 
         return _textRequests.Delete(id) ? Ok(new { ok = true }) : NotFound();
@@ -138,18 +138,18 @@ public class RequestMoviesController : ControllerBase
 
         if (TextOnlyMode)
         {
-            return Conflict(new { message = "La recherche externe est désactivée en mode texte." });
+            return Conflict(new { message = "External search is disabled in text-only mode." });
         }
 
         var q = (query ?? string.Empty).Trim();
         if (q.Length is < 2 or > 100)
         {
-            return BadRequest(new { message = "Requête invalide." });
+            return BadRequest(new { message = "Invalid query." });
         }
 
         if (!_limiter.TryAcquire($"search:{userId}", Limit(Plugin.Instance!.Configuration.SearchPerMinute), TimeSpan.FromMinutes(1)))
         {
-            return StatusCode(StatusCodes.Status429TooManyRequests, new { message = "Trop de recherches, patientez un instant." });
+            return StatusCode(StatusCodes.Status429TooManyRequests, new { message = "Too many searches. Please wait a moment." });
         }
 
         return Ok(await _media.SearchAsync(userId, q, Math.Clamp(page, 1, 20), ct).ConfigureAwait(false));
@@ -168,17 +168,17 @@ public class RequestMoviesController : ControllerBase
 
         if (TextOnlyMode)
         {
-            return Conflict(new { message = "Les statuts externes sont désactivés en mode texte." });
+            return Conflict(new { message = "External statuses are disabled in text-only mode." });
         }
 
         if (!MediaService.IsValidMediaType(mediaType) || tmdbId <= 0)
         {
-            return BadRequest(new { message = "Média invalide." });
+            return BadRequest(new { message = "Invalid media." });
         }
 
         if (!_limiter.TryAcquire($"state:{userId}", 120, TimeSpan.FromMinutes(1)))
         {
-            return StatusCode(StatusCodes.Status429TooManyRequests, new { message = "Trop de requêtes." });
+            return StatusCode(StatusCodes.Status429TooManyRequests, new { message = "Too many requests." });
         }
 
         return Ok(await _media.GetStateAsync(userId, mediaType, tmdbId, ct).ConfigureAwait(false));
@@ -196,12 +196,12 @@ public class RequestMoviesController : ControllerBase
 
         if (TextOnlyMode)
         {
-            return Conflict(new { message = "Les demandes Seerr sont désactivées en mode texte." });
+            return Conflict(new { message = "Seerr requests are disabled in text-only mode." });
         }
 
         if (!_limiter.TryAcquire($"request:{userId}", Limit(Plugin.Instance!.Configuration.RequestsPerMinute), TimeSpan.FromMinutes(1)))
         {
-            return StatusCode(StatusCodes.Status429TooManyRequests, new { ok = false, message = "Trop de demandes, patientez un instant." });
+            return StatusCode(StatusCodes.Status429TooManyRequests, new { ok = false, message = "Too many requests. Please wait a moment." });
         }
 
         var result = await _media.RequestAsync(userId.Value, body, ct).ConfigureAwait(false);
@@ -220,12 +220,12 @@ public class RequestMoviesController : ControllerBase
 
         if (TextOnlyMode)
         {
-            return Conflict(new { message = "Les signalements Seerr sont désactivés en mode texte." });
+            return Conflict(new { message = "Seerr reports are disabled in text-only mode." });
         }
 
         if (!_limiter.TryAcquire($"report:{userId}", 5, TimeSpan.FromMinutes(1)))
         {
-            return StatusCode(StatusCodes.Status429TooManyRequests, new { ok = false, message = "Trop de signalements, patientez un instant." });
+            return StatusCode(StatusCodes.Status429TooManyRequests, new { ok = false, message = "Too many reports. Please wait a moment." });
         }
 
         var result = await _media.ReportAsync(userId.Value, body, ct).ConfigureAwait(false);
@@ -338,7 +338,7 @@ public class RequestMoviesController : ControllerBase
     {
         if (TextOnlyMode)
         {
-            return Conflict(new { message = "Seerr est désactivé en mode texte." });
+            return Conflict(new { message = "Seerr is disabled in text-only mode." });
         }
 
         try
@@ -358,7 +358,7 @@ public class RequestMoviesController : ControllerBase
     {
         if (TextOnlyMode)
         {
-            return Conflict(new { message = "La synchronisation Seerr est désactivée en mode texte." });
+            return Conflict(new { message = "Seerr synchronization is disabled in text-only mode." });
         }
 
         var message = await _availability.ReconcileAsync(true, ct).ConfigureAwait(false);

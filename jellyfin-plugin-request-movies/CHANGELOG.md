@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.1
+- Show the shared request-list item in Jellyfin's side menu for every signed-in user.
+- Display a clear message when text-only mode has not been enabled.
+- Translate the plugin settings, request-list UI, scheduled task, and user-facing messages to English.
+
 ## 1.2.0
 - Ajout du mode liste textuelle partagée, sans appels à Seerr ou TMDB.
 - Ajout d’un onglet latéral Jellyfin pour consulter et alimenter la liste ; suppression réservée aux administrateurs.

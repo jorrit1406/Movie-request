@@ -37,7 +37,7 @@ sudo bash scripts/install-web-loader.sh /usr/share/jellyfin/web/index.html
 
 Pour Docker, le script doit être exécuté dans le conteneur ou sur le fichier `index.html` correspondant au chemin monté par Jellyfin Web. Une mise à jour de Jellyfin peut remplacer ce fichier ; dans ce cas, réinstallez le chargeur. Après l’installation du chargeur ou un changement de mode, rechargez Jellyfin Web (Ctrl+F5).
 
-Dans les réglages du plugin, activez **Mode liste textuelle uniquement** et enregistrez. Les entrées sont stockées dans le dossier de données du plugin Jellyfin.
+Dans les réglages du plugin, activez **Text-only list mode** et enregistrez. Les entrées sont stockées dans le dossier de données du plugin Jellyfin.
 
 ## Principes
 Logique métier et autorisations côté serveur · clé API Seerr jamais exposée · interface minimaliste ·

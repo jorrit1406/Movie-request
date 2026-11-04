@@ -40,15 +40,15 @@ public static class MediaStateResolver
 
     public static string Label(MediaState state) => state switch
     {
-        MediaState.None => "Demander",
-        MediaState.Pending => "En attente d’approbation",
-        MediaState.Approved => "Demande acceptée",
-        MediaState.Processing => "Traitement en cours",
-        MediaState.Partial => "Partiellement disponible",
-        MediaState.ImportPending => "Importé, indexation en attente",
-        MediaState.Available => "Disponible",
-        MediaState.Failed => "Échec du traitement",
-        MediaState.Declined => "Demande refusée",
+        MediaState.None => "Request",
+        MediaState.Pending => "Awaiting approval",
+        MediaState.Approved => "Request approved",
+        MediaState.Processing => "Processing",
+        MediaState.Partial => "Partially available",
+        MediaState.ImportPending => "Imported, awaiting library scan",
+        MediaState.Available => "Available",
+        MediaState.Failed => "Processing failed",
+        MediaState.Declined => "Request declined",
         _ => string.Empty
     };
 

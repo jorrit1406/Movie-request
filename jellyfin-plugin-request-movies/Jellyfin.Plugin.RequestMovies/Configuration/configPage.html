@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
     <meta charset="utf-8">
     <title>Request Movies</title>
@@ -13,76 +13,76 @@
             <form id="RequestMoviesConfigForm">
 
                 <fieldset class="verticalSection">
-                    <legend><h3>Mode de fonctionnement</h3></legend>
+                    <legend><h3>Operating mode</h3></legend>
                     <label class="checkboxContainer">
                         <input id="TextOnlyMode" type="checkbox" is="emby-checkbox" />
-                        <span>Mode liste textuelle uniquement (sans connexion à Seerr ou TMDB)</span>
+                        <span>Text-only list mode (without connecting to Seerr or TMDB)</span>
                     </label>
-                    <div class="fieldDescription">Les utilisateurs Jellyfin connectés peuvent ajouter des titres et consulter la liste partagée. Rechargez Jellyfin Web après avoir changé cette option.</div>
+                    <div class="fieldDescription">Signed-in Jellyfin users can add titles and view the shared list. Reload Jellyfin Web after changing this option.</div>
                 </fieldset>
 
                 <fieldset class="verticalSection" data-seerr-settings>
                     <legend><h3>Seerr</h3></legend>
                     <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="SeerrUrl">URL de Seerr</label>
+                        <label class="inputLabel inputLabelUnfocused" for="SeerrUrl">Seerr URL</label>
                         <input id="SeerrUrl" type="text" is="emby-input" placeholder="http://seerr:5055" />
                     </div>
                     <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="SeerrApiKey">Clé API Seerr</label>
+                        <label class="inputLabel inputLabelUnfocused" for="SeerrApiKey">Seerr API key</label>
                         <input id="SeerrApiKey" type="password" is="emby-input" autocomplete="off" />
-                        <div class="fieldDescription">Stockée côté serveur uniquement, jamais envoyée aux navigateurs.</div>
+                        <div class="fieldDescription">Stored on the server only; never sent to browsers.</div>
                     </div>
                     <label class="checkboxContainer">
                         <input id="AutoImportUsers" type="checkbox" is="emby-checkbox" />
-                        <span>Importer automatiquement dans Seerr un utilisateur Jellyfin inconnu lors de sa première demande</span>
+                        <span>Automatically import an unknown Jellyfin user into Seerr when they make their first request</span>
                     </label>
-                    <button id="TestSeerr" is="emby-button" type="button" class="raised"><span>Tester la connexion</span></button>
+                    <button id="TestSeerr" is="emby-button" type="button" class="raised"><span>Test connection</span></button>
                     <div id="TestSeerrResult" class="fieldDescription"></div>
                 </fieldset>
 
                 <fieldset class="verticalSection" data-seerr-settings>
-                    <legend><h3>Qualités proposées</h3></legend>
-                    <div class="fieldDescription">Le profil de qualité et le serveur (Radarr/Sonarr) restent choisis côté serveur. 0 = valeur par défaut de Seerr. Les utilisateurs ne voient que les libellés.</div>
-                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="Label1080">Libellé 1080p</label><input id="Label1080" type="text" is="emby-input" /></div>
-                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="ServerId1080">ID serveur Seerr (1080p)</label><input id="ServerId1080" type="number" min="0" is="emby-input" /></div>
-                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="ProfileId1080">ID profil de qualité (1080p)</label><input id="ProfileId1080" type="number" min="0" is="emby-input" /></div>
-                    <label class="checkboxContainer"><input id="Enable4K" type="checkbox" is="emby-checkbox" /><span>Proposer la 4K</span></label>
-                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="Label4K">Libellé 4K</label><input id="Label4K" type="text" is="emby-input" /></div>
-                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="ServerId4K">ID serveur Seerr (4K)</label><input id="ServerId4K" type="number" min="0" is="emby-input" /></div>
-                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="ProfileId4K">ID profil de qualité (4K)</label><input id="ProfileId4K" type="number" min="0" is="emby-input" /></div>
+                    <legend><h3>Available quality options</h3></legend>
+                    <div class="fieldDescription">The quality profile and server (Radarr/Sonarr) are selected on the server. 0 uses Seerr's default. Users only see the labels.</div>
+                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="Label1080">1080p label</label><input id="Label1080" type="text" is="emby-input" /></div>
+                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="ServerId1080">Seerr server ID (1080p)</label><input id="ServerId1080" type="number" min="0" is="emby-input" /></div>
+                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="ProfileId1080">Quality profile ID (1080p)</label><input id="ProfileId1080" type="number" min="0" is="emby-input" /></div>
+                    <label class="checkboxContainer"><input id="Enable4K" type="checkbox" is="emby-checkbox" /><span>Offer 4K</span></label>
+                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="Label4K">4K label</label><input id="Label4K" type="text" is="emby-input" /></div>
+                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="ServerId4K">Seerr server ID (4K)</label><input id="ServerId4K" type="number" min="0" is="emby-input" /></div>
+                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="ProfileId4K">Quality profile ID (4K)</label><input id="ProfileId4K" type="number" min="0" is="emby-input" /></div>
                 </fieldset>
 
                 <fieldset class="verticalSection" data-seerr-settings>
                     <legend><h3>Permissions</h3></legend>
-                    <label class="checkboxContainer"><input id="RequestsSuspended" type="checkbox" is="emby-checkbox" /><span>Suspendre temporairement toutes les nouvelles demandes</span></label>
-                    <div class="fieldDescription">Les quotas et l’approbation sont gérés par Seerr. Décochez un utilisateur pour désactiver ses demandes (il garde l’accès à la bibliothèque).</div>
+                    <label class="checkboxContainer"><input id="RequestsSuspended" type="checkbox" is="emby-checkbox" /><span>Temporarily suspend all new requests</span></label>
+                    <div class="fieldDescription">Quotas and approval are managed by Seerr. Uncheck a user to disable their requests (they will retain library access).</div>
                     <div id="UsersList"></div>
                 </fieldset>
 
                 <fieldset class="verticalSection" data-seerr-settings>
-                    <legend><h3>Disponibilité réelle et synchronisation</h3></legend>
-                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="MinRefreshIntervalMinutes">Délai minimal entre deux rafraîchissements (minutes)</label><input id="MinRefreshIntervalMinutes" type="number" min="1" is="emby-input" /></div>
-                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="MaxRefreshAttempts">Tentatives maximales par média</label><input id="MaxRefreshAttempts" type="number" min="1" is="emby-input" /></div>
-                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="MaxWaitHours">Attente maximale avant intervention manuelle (heures)</label><input id="MaxWaitHours" type="number" min="1" is="emby-input" /></div>
-                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="WebhookSecret">Secret du webhook Seerr</label><input id="WebhookSecret" type="text" is="emby-input" readonly /></div>
-                    <div class="fieldDescription">URL du webhook (Seerr &gt; Réglages &gt; Notifications &gt; Webhook, type de notification : « Média disponible ») :</div>
+                    <legend><h3>Availability and synchronization</h3></legend>
+                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="MinRefreshIntervalMinutes">Minimum time between refreshes (minutes)</label><input id="MinRefreshIntervalMinutes" type="number" min="1" is="emby-input" /></div>
+                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="MaxRefreshAttempts">Maximum attempts per item</label><input id="MaxRefreshAttempts" type="number" min="1" is="emby-input" /></div>
+                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="MaxWaitHours">Maximum wait before manual intervention (hours)</label><input id="MaxWaitHours" type="number" min="1" is="emby-input" /></div>
+                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="WebhookSecret">Seerr webhook secret</label><input id="WebhookSecret" type="text" is="emby-input" readonly /></div>
+                    <div class="fieldDescription">Webhook URL (Seerr &gt; Settings &gt; Notifications &gt; Webhook, notification type: “Media available”):</div>
                     <div id="WebhookUrl" class="fieldDescription" style="word-break:break-all"></div>
-                    <button id="SyncNow" is="emby-button" type="button" class="raised"><span>Vérifier maintenant</span></button>
+                    <button id="SyncNow" is="emby-button" type="button" class="raised"><span>Check now</span></button>
                     <div id="SyncResult" class="fieldDescription"></div>
-                    <div class="fieldDescription">Médias bloqués (récupération manuelle) :</div>
+                    <div class="fieldDescription">Stuck items (manual recovery):</div>
                     <pre id="StuckList" style="white-space:pre-wrap"></pre>
                 </fieldset>
 
                 <fieldset class="verticalSection" data-seerr-settings>
-                    <legend><h3>Performance et protection</h3></legend>
-                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="SearchCacheSeconds">Cache de recherche (secondes)</label><input id="SearchCacheSeconds" type="number" min="1" is="emby-input" /></div>
-                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="StatusCacheSeconds">Cache de statut (secondes)</label><input id="StatusCacheSeconds" type="number" min="1" is="emby-input" /></div>
-                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="SearchPerMinute">Recherches max. par utilisateur et par minute (0 = illimité)</label><input id="SearchPerMinute" type="number" min="0" is="emby-input" /></div>
-                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="RequestsPerMinute">Demandes max. par utilisateur et par minute (0 = illimité)</label><input id="RequestsPerMinute" type="number" min="0" is="emby-input" /></div>
+                    <legend><h3>Performance and limits</h3></legend>
+                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="SearchCacheSeconds">Search cache (seconds)</label><input id="SearchCacheSeconds" type="number" min="1" is="emby-input" /></div>
+                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="StatusCacheSeconds">Status cache (seconds)</label><input id="StatusCacheSeconds" type="number" min="1" is="emby-input" /></div>
+                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="SearchPerMinute">Maximum searches per user per minute (0 = unlimited)</label><input id="SearchPerMinute" type="number" min="0" is="emby-input" /></div>
+                    <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="RequestsPerMinute">Maximum requests per user per minute (0 = unlimited)</label><input id="RequestsPerMinute" type="number" min="0" is="emby-input" /></div>
                 </fieldset>
 
                 <div>
-                    <button is="emby-button" type="submit" class="raised button-submit block"><span>Enregistrer</span></button>
+                    <button is="emby-button" type="submit" class="raised button-submit block"><span>Save</span></button>
                 </div>
             </form>
         </div>
@@ -130,7 +130,7 @@
                     cb.dataset.userId = norm(u.Id);
                     cb.checked = off.indexOf(norm(u.Id)) === -1;
                     var span = document.createElement('span');
-                    span.textContent = u.Name + ' — demandes autorisées';
+                    span.textContent = u.Name + ' — requests allowed';
                     label.appendChild(cb);
                     label.appendChild(span);
                     box.appendChild(label);
@@ -140,9 +140,9 @@
             function refreshStuck() {
                 ApiClient.ajax({ type: 'GET', url: ApiClient.getUrl('RequestMovies/Admin/Stuck'), dataType: 'json' }).then(function (list) {
                     $('StuckList').textContent = list.length
-                        ? list.map(function (s) { return s.key + ' — ' + s.attempts + ' tentative(s) depuis ' + s.firstSeenUtc; }).join('\n')
-                        : 'Aucun.';
-                }, function () { $('StuckList').textContent = 'Indisponible.'; });
+                        ? list.map(function (s) { return s.key + ' — ' + s.attempts + ' attempt(s) since ' + s.firstSeenUtc; }).join('\n')
+                        : 'None.';
+                }, function () { $('StuckList').textContent = 'Unavailable.'; });
             }
 
             page.addEventListener('pageshow', function () {
@@ -164,18 +164,18 @@
             $('TextOnlyMode').addEventListener('change', applyMode);
 
             $('TestSeerr').addEventListener('click', function () {
-                $('TestSeerrResult').textContent = 'Enregistrez d’abord la configuration, puis testez… test en cours.';
+                $('TestSeerrResult').textContent = 'Save the configuration first, then test the connection…';
                 ApiClient.ajax({ type: 'GET', url: ApiClient.getUrl('RequestMovies/SeerrStatus'), dataType: 'json' }).then(function (r) {
-                    $('TestSeerrResult').textContent = 'Connexion réussie (Seerr ' + (r.version || '?') + ').';
-                }, function () { $('TestSeerrResult').textContent = 'Échec de la connexion : vérifiez l’URL et la clé API (enregistrées).'; });
+                    $('TestSeerrResult').textContent = 'Connection successful (Seerr ' + (r.version || '?') + ').';
+                }, function () { $('TestSeerrResult').textContent = 'Connection failed. Check the saved URL and API key.'; });
             });
 
             $('SyncNow').addEventListener('click', function () {
-                $('SyncResult').textContent = 'Vérification en cours…';
+                $('SyncResult').textContent = 'Checking…';
                 ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('RequestMovies/Admin/Sync'), dataType: 'json' }).then(function (r) {
                     $('SyncResult').textContent = r.message;
                     refreshStuck();
-                }, function () { $('SyncResult').textContent = 'Échec de la vérification.'; });
+                }, function () { $('SyncResult').textContent = 'Check failed.'; });
             });
 
             page.querySelector('#RequestMoviesConfigForm').addEventListener('submit', function (e) {

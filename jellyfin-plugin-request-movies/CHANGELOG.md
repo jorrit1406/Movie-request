@@ -2,6 +2,8 @@
 
 ## 1.2.7
 - Offer a shared-list request when Seerr has no search result.
+- Search the official IMDb dataset for TV series alongside Seerr results.
+- Keep only a compact series index and refresh it on search when older than one day; the compressed source is streamed, not stored.
 - Automatically mark requests done when their IMDb ID appears in the Jellyfin library.
 
 ## 1.2.6

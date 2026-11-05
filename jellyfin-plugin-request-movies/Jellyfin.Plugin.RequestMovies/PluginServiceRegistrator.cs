@@ -14,6 +14,7 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
     {
         serviceCollection.AddHttpClient("RequestMovies.Seerr");
         serviceCollection.AddHttpClient("RequestMovies.Tmdb");
+        serviceCollection.AddHttpClient("RequestMovies.Imdb");
         serviceCollection.AddSingleton<SeerrClient>();
         serviceCollection.AddSingleton<JellyfinLibraryService>();
         serviceCollection.AddSingleton<UserMapper>();
@@ -22,5 +23,6 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
         serviceCollection.AddSingleton<RateLimiter>();
         serviceCollection.AddSingleton<TextRequestStore>();
         serviceCollection.AddSingleton<TextRequestAvailabilityService>();
+        serviceCollection.AddSingleton<ImdbSeriesCatalog>();
     }
 }

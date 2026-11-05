@@ -359,23 +359,38 @@
         var host = resultsHost(input);
         var seq = ++searchSeq;
         if (q.length < 2) { host.textContent = ''; return; }
+        host.textContent = '';
+        var searchState = { seerrSettled: false, hasSeerrResults: false, imdbResponse: null };
+        var seerrHost = el('div', {});
+        var imdbHost = el('div', {});
+        host.appendChild(seerrHost);
+        host.appendChild(imdbHost);
         call('GET', 'Search', { query: q }).then(function (res) {
             if (seq !== searchSeq) { return; }
-            renderSearch(host, res, q);
+            searchState.seerrSettled = true;
+            searchState.hasSeerrResults = !!(res.seerrAvailable && res.results.length);
+            renderSearch(seerrHost, res);
+            if (searchState.imdbResponse) {
+                renderImdbSearch(imdbHost, q, searchState.imdbResponse, searchState);
+            }
         }, function () {
             if (seq !== searchSeq) { return; }
-            renderTextRequestPrompt(host, q, 'Search is unavailable. You can still add this title to the shared request list.');
+            searchState.seerrSettled = true;
+            seerrHost.appendChild(el('p', { class: 'rm-note', text: 'On-demand search is unavailable.' }));
+            if (searchState.imdbResponse) {
+                renderImdbSearch(imdbHost, q, searchState.imdbResponse, searchState);
+            }
         });
+        searchImdb(input, imdbHost, q, seq, searchState);
     }
 
-    function renderSearch(host, res, query) {
+    function renderSearch(host, res) {
         host.textContent = '';
         if (!res.seerrAvailable) {
-            renderTextRequestPrompt(host, query, 'On-demand search is unavailable. You can still add this title to the shared request list.');
+            host.appendChild(el('p', { class: 'rm-note', text: 'On-demand results are temporarily unavailable.' }));
             return;
         }
         if (!res.results.length) {
-            renderTextRequestPrompt(host, query, 'No matching titles were found. Add this title to the shared request list instead.');
             return;
         }
         host.appendChild(el('h2', { text: 'Available on demand' }));
@@ -384,6 +399,78 @@
         host.appendChild(grid);
         if (!res.requestsAllowed && res.blockedReason) {
             host.appendChild(el('p', { class: 'rm-note', text: res.blockedReason }));
+        }
+    }
+
+    function searchImdb(input, host, query, sequence, searchState) {
+        call('GET', 'ImdbSearch', { query: query }).then(function (response) {
+            if (sequence !== searchSeq || input.value.trim() !== query) { return; }
+            searchState.imdbResponse = response;
+            renderImdbSearch(host, query, response, searchState);
+            if (response.isUpdating) {
+                setTimeout(function () {
+                    if (sequence === searchSeq && input.value.trim() === query) {
+                        searchImdb(input, host, query, sequence, searchState);
+                    }
+                }, 10000);
+            }
+        }, function () {
+            if (sequence !== searchSeq || input.value.trim() !== query) { return; }
+            searchState.imdbResponse = { isReady: false, isUpdating: false, results: [] };
+            renderImdbSearch(host, query, searchState.imdbResponse, searchState);
+        });
+    }
+
+    function renderImdbSearch(host, query, response, searchState) {
+        host.textContent = '';
+        if (!response.isReady) {
+            var message = response.error || (response.isUpdating
+                ? 'Preparing the IMDb series catalog. This download is about 230 MB; please wait.'
+                : 'IMDb series search is unavailable.');
+            host.appendChild(el('p', { class: 'rm-note', text: message }));
+            if (!response.isUpdating && searchState.seerrSettled && !searchState.hasSeerrResults) {
+                renderTextRequestPrompt(host, query, 'You can still request this title manually.');
+            }
+            return;
+        }
+
+        if (!response.results.length) {
+            if (!searchState.seerrSettled) {
+                host.appendChild(el('p', { class: 'rm-note', text: 'No IMDb series matched. Checking other results...' }));
+                return;
+            }
+            if (searchState.hasSeerrResults) {
+                host.appendChild(el('p', { class: 'rm-note', text: 'No IMDb series matched.' }));
+                return;
+            }
+            var noMatches = response.error
+                ? response.error
+                : 'No IMDb series matched. Add the title to the shared request list instead.';
+            renderTextRequestPrompt(host, query, noMatches);
+            return;
+        }
+
+        host.appendChild(el('h2', { text: 'IMDb series' }));
+        var grid = el('div', { class: 'rm-grid' });
+        response.results.forEach(function (item) {
+            var card = el('div', { class: 'rm-card' }, [
+                el('div', { class: 'rm-title', text: item.title }),
+                el('div', { class: 'rm-meta', text: [item.year, 'IMDb'].filter(Boolean).join(' · ') })
+            ]);
+            appendImdbLink(card, item.imdbId);
+            var form = el('form', { class: 'rm-form' });
+            var submit = el('button', { class: 'rm-btn', type: 'submit', text: 'Request series' });
+            form.appendChild(submit);
+            form.addEventListener('submit', function (event) {
+                event.preventDefault();
+                submitTextRequest(form, item.title, '', item.imdbId);
+            });
+            card.appendChild(form);
+            grid.appendChild(card);
+        });
+        host.appendChild(grid);
+        if (response.isUpdating) {
+            host.appendChild(el('p', { class: 'rm-note', text: 'Updating the IMDb catalog in the background.' }));
         }
     }
 

@@ -36,6 +36,7 @@ public class RequestMoviesController : ControllerBase
     private readonly IHttpClientFactory _http;
     private readonly TextRequestStore _textRequests;
     private readonly TextRequestAvailabilityService _textRequestAvailability;
+    private readonly ImdbSeriesCatalog _imdbSeriesCatalog;
     private readonly IUserManager _users;
 
     public RequestMoviesController(
@@ -46,6 +47,7 @@ public class RequestMoviesController : ControllerBase
         IHttpClientFactory http,
         TextRequestStore textRequests,
         TextRequestAvailabilityService textRequestAvailability,
+        ImdbSeriesCatalog imdbSeriesCatalog,
         IUserManager users)
     {
         _seerr = seerr;
@@ -55,6 +57,7 @@ public class RequestMoviesController : ControllerBase
         _http = http;
         _textRequests = textRequests;
         _textRequestAvailability = textRequestAvailability;
+        _imdbSeriesCatalog = imdbSeriesCatalog;
         _users = users;
     }
 
@@ -213,6 +216,30 @@ public class RequestMoviesController : ControllerBase
         }
 
         return Ok(await _media.SearchAsync(userId, q, Math.Clamp(page, 1, 20), ct).ConfigureAwait(false));
+    }
+
+    [HttpGet("ImdbSearch")]
+    [Authorize]
+    public async Task<ActionResult<ImdbSeriesSearchResponse>> SearchImdb([FromQuery] string query, CancellationToken ct = default)
+    {
+        var userId = CurrentUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
+
+        var q = (query ?? string.Empty).Trim();
+        if (q.Length is < 2 or > 100)
+        {
+            return BadRequest(new { message = "Invalid query." });
+        }
+
+        if (!_limiter.TryAcquire($"imdb-search:{userId}", 30, TimeSpan.FromMinutes(1)))
+        {
+            return StatusCode(StatusCodes.Status429TooManyRequests, new { message = "Too many searches. Please wait a moment." });
+        }
+
+        return Ok(await _imdbSeriesCatalog.SearchAsync(q, ct).ConfigureAwait(false));
     }
 
     /// <summary>Statut d'un film ou d'une série sur sa fiche, par qualité et par saison.</summary>

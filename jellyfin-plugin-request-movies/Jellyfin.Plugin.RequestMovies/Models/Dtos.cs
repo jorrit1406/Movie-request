@@ -176,3 +176,25 @@ public sealed class CreateTextRequestBody
 
     [JsonPropertyName("imdbUrl")] public string? ImdbUrl { get; set; }
 }
+
+public sealed class ImdbSeriesSearchResult
+{
+    [JsonPropertyName("imdbId")] public string ImdbId { get; set; } = string.Empty;
+
+    [JsonPropertyName("title")] public string Title { get; set; } = string.Empty;
+
+    [JsonPropertyName("year")] public string? Year { get; set; }
+}
+
+public sealed class ImdbSeriesSearchResponse
+{
+    [JsonPropertyName("isReady")] public bool IsReady { get; set; }
+
+    [JsonPropertyName("isUpdating")] public bool IsUpdating { get; set; }
+
+    [JsonPropertyName("lastUpdatedUtc")] public DateTime? LastUpdatedUtc { get; set; }
+
+    [JsonPropertyName("error")] public string? Error { get; set; }
+
+    [JsonPropertyName("results")] public List<ImdbSeriesSearchResult> Results { get; set; } = new();
+}

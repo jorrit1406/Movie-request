@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.7
+- Offer a shared-list request when Seerr has no search result.
+- Automatically mark requests done when their IMDb ID appears in the Jellyfin library.
+
 ## 1.2.6
 - Detect Jellyfin administrators using the current user's policy so list management controls appear correctly.
 

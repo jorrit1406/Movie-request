@@ -164,6 +164,8 @@ public sealed class TextRequestDto
     [JsonPropertyName("hasVoted")] public bool HasVoted { get; set; }
 
     [JsonPropertyName("isDone")] public bool IsDone { get; set; }
+
+    [JsonPropertyName("imdbId")] public string? ImdbId { get; set; }
 }
 
 public sealed class CreateTextRequestBody
@@ -171,4 +173,6 @@ public sealed class CreateTextRequestBody
     [JsonPropertyName("title")] public string Title { get; set; } = string.Empty;
 
     [JsonPropertyName("notes")] public string? Notes { get; set; }
+
+    [JsonPropertyName("imdbUrl")] public string? ImdbUrl { get; set; }
 }

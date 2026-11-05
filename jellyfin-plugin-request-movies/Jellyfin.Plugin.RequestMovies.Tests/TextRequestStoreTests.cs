@@ -65,6 +65,35 @@ public class TextRequestStoreTests
     }
 
     [Fact]
+    public void MatchingImdbIdsAutomaticallyMarkRequestsDoneAndPreserveVotes()
+    {
+        var dataPath = Path.Combine(Path.GetTempPath(), "RequestMoviesTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dataPath);
+        try
+        {
+            var voter = Guid.NewGuid();
+            var store = new TextRequestStore(CreateApplicationPaths(dataPath));
+            var matching = store.Add("Matched title", string.Empty, "User", "tt1234567");
+            var notMatching = store.Add("Other title", string.Empty, "User", "tt7654321");
+            Assert.NotNull(store.ToggleVote(matching.Id, voter));
+
+            Assert.Equal(new[] { "tt1234567", "tt7654321" }, store.GetPendingImdbIds());
+            Assert.Equal(1, store.MarkDoneByImdbIds(new[] { "TT1234567" }));
+            Assert.Equal(0, store.MarkDoneByImdbIds(new[] { "tt1234567" }));
+
+            var reloaded = new TextRequestStore(CreateApplicationPaths(dataPath));
+            var requests = reloaded.GetAll(voter);
+            Assert.True(Assert.Single(requests, request => request.Id == matching.Id).IsDone);
+            Assert.Equal(1, Assert.Single(requests, request => request.Id == matching.Id).VoteCount);
+            Assert.False(Assert.Single(requests, request => request.Id == notMatching.Id).IsDone);
+        }
+        finally
+        {
+            Directory.Delete(dataPath, true);
+        }
+    }
+
+    [Fact]
     public void VotesAreUniqueToggleablePersistentAndSortTheList()
     {
         var dataPath = Path.Combine(Path.GetTempPath(), "RequestMoviesTests", Guid.NewGuid().ToString("N"));

@@ -46,6 +46,23 @@ public sealed class JellyfinLibraryService
         return _library.GetItemList(query);
     }
 
+    /// <summary>Finds movies or series in Jellyfin with the specified IMDb title ID.</summary>
+    public IReadOnlyList<BaseItem> FindByImdb(string imdbId)
+    {
+        var query = new InternalItemsQuery
+        {
+            IncludeItemTypes = new[] { BaseItemKind.Movie, BaseItemKind.Series },
+            HasAnyProviderId = new Dictionary<string, string>
+            {
+                ["Imdb"] = imdbId
+            },
+            IsVirtualItem = false,
+            Recursive = true,
+            Limit = 5
+        };
+        return _library.GetItemList(query);
+    }
+
     /// <summary>Vrai si l'un des items est en 4K (largeur ou hauteur suffisante).</summary>
     public static bool Has4K(IEnumerable<BaseItem> items)
         => items.Any(i => i.Height >= 2000 || i.Width >= 3500);

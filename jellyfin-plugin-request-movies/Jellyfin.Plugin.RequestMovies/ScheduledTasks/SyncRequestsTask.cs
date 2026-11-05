@@ -11,10 +11,14 @@ namespace Jellyfin.Plugin.RequestMovies.ScheduledTasks;
 public sealed class SyncRequestsTask : IScheduledTask
 {
     private readonly AvailabilityService _availability;
+    private readonly TextRequestAvailabilityService _textRequestAvailability;
 
-    public SyncRequestsTask(AvailabilityService availability)
+    public SyncRequestsTask(
+        AvailabilityService availability,
+        TextRequestAvailabilityService textRequestAvailability)
     {
         _availability = availability;
+        _textRequestAvailability = textRequestAvailability;
     }
 
     public string Name => "Check request availability";
@@ -29,6 +33,7 @@ public sealed class SyncRequestsTask : IScheduledTask
     {
         progress.Report(0);
         await _availability.ReconcileAsync(false, cancellationToken).ConfigureAwait(false);
+        _textRequestAvailability.Reconcile();
         progress.Report(100);
     }
 

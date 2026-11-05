@@ -37,7 +37,7 @@ public sealed class TextRequestStore
         }
     }
 
-    public TextRequestDto Add(string title, string notes, string requestedBy)
+    public TextRequestDto Add(string title, string notes, string requestedBy, string? imdbId = null)
     {
         lock (_sync)
         {
@@ -47,7 +47,8 @@ public sealed class TextRequestStore
                 Title = title,
                 Notes = notes,
                 RequestedBy = requestedBy,
-                CreatedAtUtc = DateTime.UtcNow
+                CreatedAtUtc = DateTime.UtcNow,
+                ImdbId = imdbId
             };
             var updated = _requests.Append(request).ToList();
             Save(updated);
@@ -116,6 +117,49 @@ public sealed class TextRequestStore
         }
     }
 
+    public IReadOnlyList<string> GetPendingImdbIds()
+    {
+        lock (_sync)
+        {
+            return _requests
+                .Where(request => !request.IsDone && !string.IsNullOrEmpty(request.ImdbId))
+                .Select(request => request.ImdbId!)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+        }
+    }
+
+    public int MarkDoneByImdbIds(IReadOnlyCollection<string> imdbIds)
+    {
+        var matchingIds = new HashSet<string>(imdbIds, StringComparer.OrdinalIgnoreCase);
+        if (matchingIds.Count == 0)
+        {
+            return 0;
+        }
+
+        lock (_sync)
+        {
+            var matchingRequests = _requests
+                .Where(request => !request.IsDone && request.ImdbId is not null && matchingIds.Contains(request.ImdbId))
+                .ToArray();
+            if (matchingRequests.Length == 0)
+            {
+                return 0;
+            }
+
+            var updated = _requests
+                .Select(request => matchingRequests.Contains(request) ? CopyAsDone(request) : request)
+                .ToList();
+            Save(updated);
+            foreach (var request in matchingRequests)
+            {
+                request.IsDone = true;
+            }
+
+            return matchingRequests.Length;
+        }
+    }
+
     private static StoredTextRequest CopyWithVote(StoredTextRequest request, Guid userId)
     {
         var voterIds = new List<Guid>(request.VoterIds);
@@ -132,7 +176,8 @@ public sealed class TextRequestStore
             RequestedBy = request.RequestedBy,
             CreatedAtUtc = request.CreatedAtUtc,
             VoterIds = voterIds,
-            IsDone = request.IsDone
+            IsDone = request.IsDone,
+            ImdbId = request.ImdbId
         };
     }
 
@@ -146,7 +191,8 @@ public sealed class TextRequestStore
             RequestedBy = request.RequestedBy,
             CreatedAtUtc = request.CreatedAtUtc,
             VoterIds = request.VoterIds,
-            IsDone = true
+            IsDone = true,
+            ImdbId = request.ImdbId
         };
     }
 
@@ -160,7 +206,8 @@ public sealed class TextRequestStore
             CreatedAtUtc = request.CreatedAtUtc,
             VoteCount = request.VoterIds.Count,
             HasVoted = request.VoterIds.Contains(userId),
-            IsDone = request.IsDone
+            IsDone = request.IsDone,
+            ImdbId = request.ImdbId
         };
 
     private void Save(IReadOnlyCollection<StoredTextRequest> requests)
@@ -192,5 +239,8 @@ public sealed class TextRequestStore
 
         [JsonPropertyName("isDone")]
         public bool IsDone { get; set; }
+
+        [JsonPropertyName("imdbId")]
+        public string? ImdbId { get; set; }
     }
 }

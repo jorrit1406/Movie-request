@@ -93,6 +93,7 @@
             '.rm-text-entry-actions{display:flex;align-items:center;gap:.6em;margin-top:.6em}',
             '.rm-text-vote-count{min-width:5em}',
             '.rm-text-form{max-width:none;padding:1em 0}',
+            '.rm-text-imdb{color:inherit}',
             '.rm-text-nav .navMenuOptionText{display:inline}'
         ].join('');
         document.head.appendChild(el('style', { id: 'rm-style', text: css }));
@@ -133,25 +134,24 @@
         var form = el('form', { class: 'rm-form rm-text-form' });
         var title = el('input', { class: 'rm-input', type: 'text', maxlength: '120', required: 'required', placeholder: 'Title' });
         var notes = el('textarea', { class: 'rm-input', rows: '3', maxlength: '500', placeholder: 'Notes (optional)' });
+        var imdbUrl = el('input', { class: 'rm-input', type: 'text', maxlength: '300', placeholder: 'IMDb link or ID (optional)' });
         var submit = el('button', { class: 'rm-btn', type: 'submit', text: 'Add to list' });
         var list = el('div', { class: 'rm-text-list rm-active-list', 'aria-live': 'polite' });
         var doneList = el('div', { class: 'rm-text-list rm-done-list', 'aria-live': 'polite' });
         form.appendChild(title);
         form.appendChild(notes);
+        form.appendChild(imdbUrl);
         form.appendChild(submit);
         form.addEventListener('submit', function (event) {
             event.preventDefault();
             var value = title.value.trim();
             if (!value) { setMsg(form, 'Enter a title.', true); return; }
-            submit.disabled = true;
-            call('POST', 'TextRequests', null, { title: value, notes: notes.value.trim() }).then(function () {
+            submitTextRequest(form, value, notes.value.trim(), imdbUrl.value.trim(), function () {
                 title.value = '';
                 notes.value = '';
-                setMsg(form, 'Added to the list.', false);
+                imdbUrl.value = '';
                 loadTextRequests(list, doneList);
-            }, function (error) {
-                errorMessage(error).then(function (message) { setMsg(form, message, true); });
-            }).then(function () { submit.disabled = false; }, function () { submit.disabled = false; });
+            });
         });
         inner.appendChild(status);
         inner.appendChild(form);
@@ -182,7 +182,9 @@
             if (request.notes) { entry.appendChild(el('p', { text: request.notes })); }
             var date = new Date(request.createdAtUtc);
             var metadata = request.requestedBy + ' · ' + (isNaN(date.getTime()) ? '' : date.toLocaleString());
-            entry.appendChild(el('div', { class: 'rm-text-entry-meta', text: metadata }));
+            var metadataElement = el('div', { class: 'rm-text-entry-meta', text: metadata });
+            appendImdbLink(metadataElement, request.imdbId);
+            entry.appendChild(metadataElement);
             var actions = el('div', { class: 'rm-text-entry-actions' });
             var voteCount = el('span', {
                 class: 'rm-text-vote-count',
@@ -239,7 +241,9 @@
             if (request.notes) { entry.appendChild(el('p', { text: request.notes })); }
             var date = new Date(request.createdAtUtc);
             var metadata = request.requestedBy + ' · ' + (isNaN(date.getTime()) ? '' : date.toLocaleString());
-            entry.appendChild(el('div', { class: 'rm-text-entry-meta', text: metadata }));
+            var metadataElement = el('div', { class: 'rm-text-entry-meta', text: metadata });
+            appendImdbLink(metadataElement, request.imdbId);
+            entry.appendChild(metadataElement);
             var actions = el('div', { class: 'rm-text-entry-actions' });
             actions.appendChild(el('span', {
                 class: 'rm-text-vote-count',
@@ -357,20 +361,23 @@
         if (q.length < 2) { host.textContent = ''; return; }
         call('GET', 'Search', { query: q }).then(function (res) {
             if (seq !== searchSeq) { return; }
-            renderSearch(host, res);
+            renderSearch(host, res, q);
         }, function () {
             if (seq !== searchSeq) { return; }
-            host.textContent = '';
+            renderTextRequestPrompt(host, q, 'Search is unavailable. You can still add this title to the shared request list.');
         });
     }
 
-    function renderSearch(host, res) {
+    function renderSearch(host, res, query) {
         host.textContent = '';
         if (!res.seerrAvailable) {
-            host.appendChild(el('p', { class: 'rm-note', text: 'On-demand results are temporarily unavailable.' }));
+            renderTextRequestPrompt(host, query, 'On-demand search is unavailable. You can still add this title to the shared request list.');
             return;
         }
-        if (!res.results.length) { return; }
+        if (!res.results.length) {
+            renderTextRequestPrompt(host, query, 'No matching titles were found. Add this title to the shared request list instead.');
+            return;
+        }
         host.appendChild(el('h2', { text: 'Available on demand' }));
         var grid = el('div', { class: 'rm-grid' });
         res.results.forEach(function (item) { grid.appendChild(renderCard(item, res)); });
@@ -378,6 +385,60 @@
         if (!res.requestsAllowed && res.blockedReason) {
             host.appendChild(el('p', { class: 'rm-note', text: res.blockedReason }));
         }
+    }
+
+    function submitTextRequest(form, title, notes, imdbUrl, onSuccess) {
+        var submit = form.querySelector('[type="submit"]');
+        submit.disabled = true;
+        call('POST', 'TextRequests', null, { title: title, notes: notes, imdbUrl: imdbUrl }).then(function () {
+            setMsg(form, 'Added to the shared request list.', false);
+            if (onSuccess) { onSuccess(); }
+        }, function (error) {
+            errorMessage(error).then(function (message) { setMsg(form, message, true); });
+        }).then(function () {
+            submit.disabled = false;
+        }, function () {
+            submit.disabled = false;
+        });
+    }
+
+    function renderTextRequestPrompt(host, query, message) {
+        host.textContent = '';
+        host.appendChild(el('p', { class: 'rm-note', text: message }));
+        var form = el('form', { class: 'rm-form' });
+        var title = el('input', {
+            class: 'rm-input', type: 'text', maxlength: '120', required: 'required',
+            placeholder: 'Title', value: query
+        });
+        var imdbUrl = el('input', {
+            class: 'rm-input', type: 'text', maxlength: '300',
+            placeholder: 'IMDb link or ID (optional)'
+        });
+        var submit = el('button', { class: 'rm-btn', type: 'submit', text: 'Request this title' });
+        form.appendChild(title);
+        form.appendChild(imdbUrl);
+        form.appendChild(submit);
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+            var value = title.value.trim();
+            if (!value) {
+                setMsg(form, 'Enter a title.', true);
+                return;
+            }
+            submitTextRequest(form, value, '', imdbUrl.value.trim());
+        });
+        host.appendChild(form);
+    }
+
+    function appendImdbLink(container, imdbId) {
+        if (!imdbId) { return; }
+        container.appendChild(el('a', {
+            class: 'rm-text-imdb',
+            href: 'https://www.imdb.com/title/' + encodeURIComponent(imdbId) + '/',
+            target: '_blank',
+            rel: 'noopener noreferrer',
+            text: 'IMDb'
+        }));
     }
 
     function posterUrl(path) {

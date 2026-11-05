@@ -14,8 +14,9 @@ Les releases publient un paquet distinct pour Jellyfin 10.11 (`targetAbi` 10.11.
 
 
 ## Fonctionnalités
-- **Shared request list** : always available in the Jellyfin side menu; all signed-in Jellyfin users can view titles, add titles, and vote once per title. The list is ordered by vote count; administrators can remove requests or mark them done, which moves them into a separate completed list. This list works regardless of the text-only setting.
+- **Shared request list** : always available in the Jellyfin side menu; all signed-in Jellyfin users can view titles, add titles, and vote once per title. The list is ordered by vote count; administrators can remove requests or mark them done, which moves them into a separate completed list. Requests with an IMDb title ID are automatically marked done when Jellyfin finds that exact ID in its library. This list works regardless of the text-only setting.
 - **Recherche** : section « Disponible à la demande » (résultats Seerr absents de la bibliothèque) sur la page de recherche.
+- **No search result** : users can add the searched title to the shared list and optionally include its IMDb link. The plugin does not scrape IMDb.
 - **Demande** : bouton « Demander », choix 1080p/4K, saisons pour les séries, doublons évités (ID TMDB).
 - **Statut sur la fiche** : Demander, En attente d’approbation, Demande acceptée, Traitement en cours,
   Partiellement disponible, Importé (indexation en attente), Disponible, Échec.

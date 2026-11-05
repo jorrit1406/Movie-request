@@ -26,6 +26,8 @@ namespace Jellyfin.Plugin.RequestMovies.Api;
 public class RequestMoviesController : ControllerBase
 {
     private static readonly Regex PosterPath = new(@"^/[A-Za-z0-9_-]{5,64}\.(jpg|png)$", RegexOptions.Compiled);
+    private static readonly Regex ImdbIdPattern = new(@"^tt\d{7,10}$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex ImdbPathPattern = new(@"^/title/(tt\d{7,10})/?$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     private readonly SeerrClient _seerr;
     private readonly MediaService _media;
@@ -33,6 +35,7 @@ public class RequestMoviesController : ControllerBase
     private readonly RateLimiter _limiter;
     private readonly IHttpClientFactory _http;
     private readonly TextRequestStore _textRequests;
+    private readonly TextRequestAvailabilityService _textRequestAvailability;
     private readonly IUserManager _users;
 
     public RequestMoviesController(
@@ -42,6 +45,7 @@ public class RequestMoviesController : ControllerBase
         RateLimiter limiter,
         IHttpClientFactory http,
         TextRequestStore textRequests,
+        TextRequestAvailabilityService textRequestAvailability,
         IUserManager users)
     {
         _seerr = seerr;
@@ -50,6 +54,7 @@ public class RequestMoviesController : ControllerBase
         _limiter = limiter;
         _http = http;
         _textRequests = textRequests;
+        _textRequestAvailability = textRequestAvailability;
         _users = users;
     }
 
@@ -59,6 +64,38 @@ public class RequestMoviesController : ControllerBase
     private static int Limit(int configured) => configured;
 
     private static bool TextOnlyMode => Plugin.Instance?.Configuration.TextOnlyMode == true;
+
+    private static bool TryParseImdbId(string? value, out string? imdbId)
+    {
+        imdbId = null;
+        var input = value?.Trim();
+        if (string.IsNullOrEmpty(input))
+        {
+            return true;
+        }
+
+        if (ImdbIdPattern.IsMatch(input))
+        {
+            imdbId = input.ToLowerInvariant();
+            return true;
+        }
+
+        if (!Uri.TryCreate(input, UriKind.Absolute, out var uri)
+            || uri.Scheme != Uri.UriSchemeHttps
+            || (uri.Host != "imdb.com" && uri.Host != "www.imdb.com" && uri.Host != "m.imdb.com"))
+        {
+            return false;
+        }
+
+        var match = ImdbPathPattern.Match(uri.AbsolutePath);
+        if (!match.Success)
+        {
+            return false;
+        }
+
+        imdbId = match.Groups[1].Value.ToLowerInvariant();
+        return true;
+    }
 
     // ------------------------------------------------------------------ utilisateur authentifié
 
@@ -80,6 +117,7 @@ public class RequestMoviesController : ControllerBase
             return Unauthorized();
         }
 
+        _textRequestAvailability.Reconcile();
         return Ok(_textRequests.GetAll(userId.Value));
     }
 
@@ -100,13 +138,18 @@ public class RequestMoviesController : ControllerBase
             return BadRequest(new { message = "The title must be 1 to 120 characters and notes must be 500 characters or fewer." });
         }
 
+        if ((body.ImdbUrl?.Length ?? 0) > 300 || !TryParseImdbId(body.ImdbUrl, out var imdbId))
+        {
+            return BadRequest(new { message = "Enter a valid IMDb title link or title ID, such as tt0133093." });
+        }
+
         if (!_limiter.TryAcquire($"text-request:{userId}", 5, TimeSpan.FromMinutes(1)))
         {
             return StatusCode(StatusCodes.Status429TooManyRequests, new { message = "Too many requests. Please wait a moment." });
         }
 
         var username = _users.GetUserById(userId.Value)?.Username ?? "Jellyfin";
-        return Ok(_textRequests.Add(title, notes, username));
+        return Ok(_textRequests.Add(title, notes, username, imdbId));
     }
 
     [HttpPost("TextRequests/{id:guid}/Vote")]
